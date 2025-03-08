@@ -1,137 +1,8 @@
 #include "comparePionSpectra2.h"
 
 
-// ===============================================================
-void comparePionSpectra2(){
-
-    tVPars vPi0_101 = {{"oHag", "FM", "efficiency from MB"},                    // 0
-                       {"tcmDoublePow", "FM", "efficiency from MB + ASh"},      // 1
-                       {"tcmDoublePow", "FM", "efficiency from MB + ASh + ASl"},// 2
-                       {"tcmDoublePow", "FM", "efficiency from MB + ASh + ASl"},// 3
-                       {"tcmDoublePow", "FM", "efficiency from MB + ASh + ASl"},// 4
-                       {"tcmDoublePow", "FM", "efficiency from MB + ASh + ASl"},// 5
-                       {"tcmDoublePow", "FM", "efficiency from MB + ASh + ASl"},// 6
-                       {"tcmDoublePow", "FM", "efficiency from MB + ASh + ASl"} // 7
-                      };
-    
-    tVPars vPi0_135 = {{"oHag", "EX0FM", "efficiency from MB"},
-                       {"oHag", "EX0FM", "efficiency from MB + ASh"},
-                       {"tcmDoublePow", "FM", "efficiency from MB + ASh + ASl"},
-                       {"tcmDoublePow", "FM", "efficiency from MB + ASh + ASl"},
-                       {"tcmDoublePow", "FM", "efficiency from MB + ASh + ASl"},
-                       {"tcmDoublePow", "FM", "efficiency from MB + ASh + ASl"},
-                       {"tcmDoublePow", "FM", "efficiency from MB + ASh + ASl"},
-                       {"tcmDoublePow", "FM", "efficiency from MB + ASh + ASl"}
-                      };
-
-    tVPars vEta_101 = {{"oHag", "EX0FM", "efficiency from MB"},
-                       {"oHag", "EX0FM", "efficiency from MB + ASh"},
-                       {"oHag", "EX0FM", "efficiency from MB + ASh + ASl"},
-                       {"oHag", "EX0FM", "efficiency from MB + ASh + ASl"},
-                       {"oHag", "EX0FM", "efficiency from MB + ASh + ASl"},
-                       {"oHag", "EX0FM", "efficiency from MB + ASh + ASl"},
-                       {"oHag", "EX0FM", "efficiency from MB + ASh + ASl"},
-                       {"oHag", "EX0FM", "efficiency from MB + ASh + ASl"}
-                      };
-
-    tVPars vEta_135 = {{"oHag", "EX0FM", "efficiency from MB"},
-                       {"tcmDoublePow", "FM", "efficiency from MB + ASh"},
-                       {"tcmDoublePow", "FM", "efficiency from MB + ASh + ASl"},
-                       {"tcmDoublePow", "FM", "efficiency from MB + ASh + ASl"},
-                       {"tcmDoublePow", "FM", "efficiency from MB + ASh + ASl"},
-                       {"tcmDoublePow", "FM", "efficiency from MB + ASh + ASl"},
-                       {"tcmDoublePow", "FM", "efficiency from MB + ASh + ASl"},
-                       {"tcmDoublePow", "FM", "efficiency from MB + ASh + ASl"}
-                      };
-    
-    std::map<std::string, tVPars const&> theMap;
-    theMap.insert({"Pi0_10130e03", vPi0_101});
-    theMap.insert({"Pi0_13530e03", vPi0_135});
-    theMap.insert({"Eta_10130e03", vEta_101});
-    theMap.insert({"Eta_13530e03", vEta_135});
-    
-    gROOT->Reset();   
-    gROOT->SetStyle("Plain");
-
-    std::vector<int> lRounds{0, 1, 3, 5, 6};
-
-    // doMultiRound("Pi0", "10130e03", theMap, lRounds, 0.3/*theLeftMargin*/);
-    // return;
-    for (auto meson : std::vector<std::string>{"Pi0", "Eta"}){
-        for (auto evtcut : std::vector<std::string>{"10130e03", "13530e03"}){
-            printf("%s %s\n", meson.data(), evtcut.data());
-            doMultiRound(meson, evtcut, theMap, lRounds, 0.3/*theLeftMargin*/);
-        }
-    }
-    return;
 
 
-    int round = 1;
-
-    fitMesonAndWriteToFile(
-        round,
-        "10130e03",
-        "Pi0",
-        "tcmDoublePow",
-        "FM",
-        "efficiency from MB + AS");
-    return;
-    fitMesonAndWriteToFile(
-        round,
-        "13530e03",
-        "Pi0",
-        "tcmDoublePow",
-        "FM",
-        "efficiency from MB + AS");
-        
-    fitMesonAndWriteToFile(
-        round,
-        "10130e03",
-        "Eta",
-        "oHag",
-        "EX0FM",
-        "efficiency from MB + AS");    
-
-    fitMesonAndWriteToFile(
-        round,
-        "13530e03",
-        "Eta",
-        "tcmDoublePow",
-        "FM",
-        "efficiency from MB + AS");
-
-    // mod
-    // fitMesonAndWriteToFile(
-    //     round,
-    //     "13530e03",
-    //     "Eta",
-    //     "oHag",
-    //     "EX0FM",
-    //     "efficiency from MB + AS");
-}
-
-//====================================================================
-
-/*
-    TString cent[nCentClasses]              = {"0-10%","0-20%","60-80%","0-5%","5-10%","10-20%","40-60%","20-40%","20-50%"};
-    TString fitFunctionsPi0[nCentClasses] = {"rad",      "rad",  "doHag", "doHag", "doHag", "rad", "oHag", "rad",   "doHag"};
-    TString fitFunctionsEta[nCentClasses] = {"modkfunc", "oHag", "oHag",  "doHag", "doHag", "rad", "oHag", "doHag", "oHag"};
-    */
-// fitMesonAndWriteToFile(
-    //     round,
-    //     "13530e03",
-    //     "Pi0",
-    //     "oHag",
-    //     "EX0FM",
-    //     "efficiency from MB + AS");
-
-//    
-void setMarginsToZero(TVirtualPad& vpad){
-    vpad.SetLeftMargin(0.0);
-    vpad.SetRightMargin(0.0);
-    vpad.SetTopMargin(0.0);
-    vpad.SetBottomMargin(0.0);
-}
 
 void doMultiRound(std::string theMeson, 
                   std::string theCent,
@@ -197,20 +68,6 @@ void doMultiRound(std::string theMeson,
 }
 
 //====================================================================
-void squeezeAndPrepare_nSubPads(TVirtualPad& vpad, int n){
-    
-    for (int i=1; i<=n; ++i){
-        vpad.cd(i);
-        auto* p = (TPad*)gPad;        
-        p->SetTicks(1,1); // enable ticks on both x and y axes (all sides)
-        p->SetRightMargin(0.0);
-        p->SetTopMargin(i==1 ? 0.1 : 0.0);
-        p->SetBottomMargin(i==4 ? 0.25 : 0.0);    
-    }
-    vpad.Update();
-}
-
-//====================================================================
 TCanvas* 
     fitMesonAndWriteToFile(int round, 
                            std::string eventCutNo, 
@@ -265,10 +122,15 @@ TCanvas*
     TH1D* lHistoMBonly_oldBin_WW   = (TH1D*)utils_files_strings::GetObjectFromPathInFile(filename.data(), "MCYield_Meson_oldBin");
     TH1D* lHistoMBonly_oldBin_WOW  = (TH1D*)utils_files_strings::GetObjectFromPathInFile(filename.data(), "MCYield_Meson_oldBinWOWeights");
     
-    // addedSig 
-    TH1D* lHistoMC_oldBin_WW_addedSig  = (TH1D*)utils_files_strings::GetObjectFromPathInFile(filename.data(), "MCYield_Meson_oldBin_AddedSig");
+    // addedSig high pt 
+    TH1D* lHistoMC_oldBin_WW_addedSigH  = (TH1D*)utils_files_strings::GetObjectFromPathInFile(filename.data(), "MCYield_Meson_oldBin_AddedSig");
     TH1D* lHistoMC_oldBin_WOW_addedSig  = (TH1D*)utils_files_strings::GetObjectFromPathInFile(filename.data(), "MCYield_Meson_oldBinWOWeights_AddedSig");
     
+    // addedSig low pt
+    TH1D* lHistoMC_oldBin_WW_addedSigL  = (TH1D*)utils_files_strings::GetObjectFromPathInFile(filename.data(), "MCYield_Meson_oldBin_AddedSig");
+    TH1D* lHistoMC_oldBin_WOW_addedSigL  = (TH1D*)utils_files_strings::GetObjectFromPathInFile(filename.data(), "MCYield_Meson_oldBinWOWeights_AddedSig");
+
+
     // get fit and histo from last iteration
     std::string fitName(Form("%s_Data_5TeV_%s_it%d", meson.data(), eventCutNo.substr(0,5).data(), round));
     //~ TF1* lastItFit = (TF1*)utils_files_strings::GetObjectFromPathInFile(filenameLastWeightsFile.data(), fitName.data());
@@ -327,19 +189,26 @@ TCanvas*
     histo1DSpectra->DrawCopy();
 
     auto xnew = [theLeftMargin](float xold){return theLeftMargin + (1.-theLeftMargin)*xold;};
-    auto alegend = new TLegend(xnew(0.6), 0.59, xnew(0.9), 0.86);
-    alegend->SetBorderSize(0);
+    auto legend_pad1 = new TLegend(xnew(0.6), 0.59, xnew(0.9), 0.86);
+    legend_pad1->SetBorderSize(0);
             
     lHistoData->SetTitle(Form("%s yields for %s", meson.data(), eventCutNo.data()));
     fitDataYield->SetRange(minPtPlot, maxPtPlot);
-
-    utils_plotting::DrawAndAdd(*lHistoData,              "same", colorData, 1.0, alegend, "Data", "lep", .055, true, markerStyleData, 1.0);
-    utils_plotting::DrawAndAdd(*lHistoMBonly_oldBin_WOW, "same", colorMCMB, 1.0, alegend, "MB MC WoW", "lep", .055, true, markerStyleMCWOW, 1.0);
+    
+    // plot always
+    utils_plotting::DrawAndAdd(*lHistoData,              "same", colorData, 1.0, legend_pad1, "Data", "lep", .055, true, markerStyleData, 1.0);
+    utils_plotting::DrawAndAdd(*lHistoMBonly_oldBin_WOW, "same", colorMCMB, 1.0, legend_pad1, "MB MC WoW", "lep", .055, true, markerStyleMCWOW, 1.0);
+    
+    // not in 0th iteration
     if (round){
-        utils_plotting::DrawAndAdd(*lHistoMC_oldBin_WOW_addedSig, "same", colorMCASh, 1.0, alegend, "ASh MC WOW", "lep", .055, true, markerStyleMCWOW, 1.0);
-        utils_plotting::DrawAndAdd(*lHistoMC_oldBin_WW_addedSig, "same", colorMCASh, 1.0, alegend,  "ASh MC WW", "lep", .055, true, markerStyleMCWW, 1.0);
+        // MBMC WW only from 2nd iteration onwards
+        if (round>1) {
+            utils_plotting::DrawAndAdd(*lHistoMBonly_oldBin_WW, "same", colorMCMB, 1.0, legend_pad1, "MB MC WW", "lep", .055, true, markerStyleMCWW, 1.0);
+        }
+        utils_plotting::DrawAndAdd(*lHistoMC_oldBin_WOW_addedSig, "same", colorMCASh, 1.0, legend_pad1, "ASh MC WOW", "lep", .055, true, markerStyleMCWOW, 1.0);
+        utils_plotting::DrawAndAdd(*lHistoMC_oldBin_WW_addedSigH, "same", colorMCASh, 1.0, legend_pad1,  "ASh MC WW", "lep", .055, true, markerStyleMCWW, 1.0);
     }
-    utils_plotting::DrawAndAdd(*fitDataYield,            "same", colorFit, 3.0, alegend, "Fit data", "l", .055, true);
+    utils_plotting::DrawAndAdd(*fitDataYield, "same", colorFit, 3.0, legend_pad1, "Fit data", "l", .055, true);
    
     
     auto centString = [](std::string& evtCutNo){
@@ -468,14 +337,11 @@ TCanvas*
     
     histo1DRatio->GetYaxis()->SetRangeUser(0., 2.5);        
     histo1DRatio->GetYaxis()->SetTitle("MC over Data");
-    
     histo1DRatio->DrawCopy();
 
     auto leg4 = new TLegend(xnew(0.144),0.73,xnew(0.44),0.92);
     leg4->SetBorderSize(0);
     leg4->Draw();
-
-    // DrawGammaSetMarker(hHistoRatioAddedMCWWToFit, markerStyleMC, 1.0, colorMCASh, colorMCASh);    
 
 
     TH1* hMBoverData = utils_TH1::DivideTH1ByTH1(*lHistoMBonly_dataBin_WW, *lHistoData, 
@@ -494,7 +360,7 @@ TCanvas*
     if (round){
         // calc ratio AS ww over data
         TH1* lHistoAShonly_dataBin_WW_fromReb = 
-            utils_TH1::RebinDensityHistogram(*lHistoMC_oldBin_WW_addedSig,
+            utils_TH1::RebinDensityHistogram(*lHistoMC_oldBin_WW_addedSigH,
                                             *lHistoMBonly_dataBin_WW,
                                             "reb");
 
@@ -573,5 +439,27 @@ TH1D* getWeightedMCHistogramFromLastFitAndLastMCWOW(TH1* thisMCWOW, TF1* lastFit
     }
     return thisMCWWcalculated;
     
+}
+
+//====================================================================   
+void setMarginsToZero(TVirtualPad& vpad){
+    vpad.SetLeftMargin(0.0);
+    vpad.SetRightMargin(0.0);
+    vpad.SetTopMargin(0.0);
+    vpad.SetBottomMargin(0.0);
+}
+
+//====================================================================
+void squeezeAndPrepare_nSubPads(TVirtualPad& vpad, int n){
+    
+    for (int i=1; i<=n; ++i){
+        vpad.cd(i);
+        auto* p = (TPad*)gPad;        
+        p->SetTicks(1,1); // enable ticks on both x and y axes (all sides)
+        p->SetRightMargin(0.0);
+        p->SetTopMargin(i==1 ? 0.1 : 0.0);
+        p->SetBottomMargin(i==4 ? 0.25 : 0.0);    
+    }
+    vpad.Update();
 }
 
