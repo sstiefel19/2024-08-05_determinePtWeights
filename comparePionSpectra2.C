@@ -4,7 +4,8 @@
 
 
 
-void doMultiRound(std::string theMeson, 
+void doMultiRound(std::map<int, std::string> const &theMapBaseDirs,
+                  std::string theMeson, 
                   std::string theCent,
                   std::map<std::string, tVPars const&> const &theMap,
                   std::vector<int> const &theRounds,
@@ -45,6 +46,7 @@ void doMultiRound(std::string theMeson,
         int round = theRounds[iPos];
         TCanvas* cNx1_i = 
             fitMesonAndWriteToFile(
+                theMapBaseDirs,   
                 round,
                 theCent,
                 theMeson,
@@ -69,7 +71,8 @@ void doMultiRound(std::string theMeson,
 
 //====================================================================
 TCanvas* 
-    fitMesonAndWriteToFile(int round, 
+    fitMesonAndWriteToFile(std::map<int, std::string> const &theMapBaseDirs,
+                           int round, 
                            std::string eventCutNo, 
                            std::string meson, 
                            const char* fitFunction, 
@@ -88,29 +91,9 @@ TCanvas*
     Double_t minPtPlot  = isPi0 ?  0.3 : .9;
     Double_t maxPtPlot  = isPi0 ? 30.0 : 14.0;
 
-    // all iterations
-    std::map<int, std::string> lMapBaseDirs{
-        {0, "/2023-_analysis/afterburner/2023-10-24_newCutNewSplinesWPCWFlexCock"},
-        {1, "/2023-_analysis/afterburner/2023-11-05_MBwoPtWAddedSigWptw_newDataTrain_mixedMesonAmp"},
-        {2, "/2023-_analysis/afterburner/2024-08-05_allASMC_ptw0b"},
-        {3, "/2023-_analysis/afterburner/2024-08-14_allASMC_ptw2"}, 
-        {4, "/2023-_analysis/afterburner/2024-10-25_allASMC_ptw3_multiEffiMerge_limPt"},
-        {5, "/2023-_analysis/afterburner/2024-10-31_allASMC_ptw4"},
-        {6, "/2023-_analysis/afterburner/2024-11-04_allASMC_ptw5"},
-        {7, "/2023-_analysis/afterburner/2024-11-07_allASMC_ptw6"}
-    };
-
-    // leave out /2023-11-05_MBwoPtWAddedSigWptw_newDataTrain_mixedMesonAmp
-    // std::map<int, std::string> lMapBaseDirs{
-    //     {0, "/2023-_analysis/afterburner/2023-10-24_newCutNewSplinesWPCWFlexCock"},
-    //     {1, "/2023-_analysis/afterburner/2024-08-05_allASMC_ptw0b"},
-    //     {2, "/2023-_analysis/afterburner/2024-08-14_allASMC_ptw2"},
-    //     {3, "/2023-_analysis/afterburner/2024-10-25_allASMC_ptw3_multiEffiMerge_limPt"}
-    // };
-
     auto giveFilename = [&](int round, std::string theAfterBurnerConfig, std::string file) {
         return (round >= 0) ? Form("%s/%s/%s_0d200009ab770c00amd0404000_0152101500000000/PbPb_5.02TeV/%s_%s_%s_0d200009ab770c00amd0404000_0152101500000000.root", 
-                                 lMapBaseDirs.at(round).data(), theAfterBurnerConfig.data(), eventCutNo.data(), meson.data(), file.data(), eventCutNo.data())
+                                 theMapBaseDirs.at(round).data(), theAfterBurnerConfig.data(), eventCutNo.data(), meson.data(), file.data(), eventCutNo.data())
                             : Form("");
     };
     
@@ -197,16 +180,25 @@ TCanvas*
     
     // plot always
     utils_plotting::DrawAndAdd(*lHistoData,              "same", colorData, 1.0, legend_pad1, "Data", "lep", .055, true, markerStyleData, 1.0);
-    utils_plotting::DrawAndAdd(*lHistoMBonly_oldBin_WOW, "same", colorMCMB, 1.0, legend_pad1, "MB MC WoW", "lep", .055, true, markerStyleMCWOW, 1.0);
+    utils_plotting::DrawAndAdd(*lHistoMBonly_oldBin_WOW, "same", colorMCMB, 1.0, legend_pad1, "MC MB WoW", "lep", .055, true, markerStyleMCWOW, 1.0);
     
     // not in 0th iteration
     if (round){
         // MBMC WW only from 2nd iteration onwards
         if (round>1) {
-            utils_plotting::DrawAndAdd(*lHistoMBonly_oldBin_WW, "same", colorMCMB, 1.0, legend_pad1, "MB MC WW", "lep", .055, true, markerStyleMCWW, 1.0);
+            utils_plotting::DrawAndAdd(*lHistoMBonly_oldBin_WW, "same", colorMCMB, 1.0, legend_pad1, "MC MB WW", "lep", .055, true, markerStyleMCWW, 1.0);
         }
-        utils_plotting::DrawAndAdd(*lHistoMC_oldBin_WOW_addedSig, "same", colorMCASh, 1.0, legend_pad1, "ASh MC WOW", "lep", .055, true, markerStyleMCWOW, 1.0);
-        utils_plotting::DrawAndAdd(*lHistoMC_oldBin_WW_addedSigH, "same", colorMCASh, 1.0, legend_pad1,  "ASh MC WW", "lep", .055, true, markerStyleMCWW, 1.0);
+        // it1 only ASh
+        if (round==1) {
+            utils_plotting::DrawAndAdd(*lHistoMC_oldBin_WOW_addedSig, "same", colorMCASh, 1.0, legend_pad1, "ASh MC WOW", "lep", .055, true, markerStyleMCWOW, 1.0);
+            utils_plotting::DrawAndAdd(*lHistoMC_oldBin_WW_addedSigH, "same", colorMCASh, 1.0, legend_pad1,  "ASh MC WW", "lep", .055, true, markerStyleMCWW, 1.0);
+        }
+        // it2 and it3 ASl&ASh premerged
+        if (round>1 && round<4){
+            utils_plotting::DrawAndAdd(*lHistoMC_oldBin_WOW_addedSig, "same", colorMCASh, 1.0, legend_pad1, "MC (ASl&ASh) WOW", "lep", .055, true, markerStyleMCWOW, 1.0);
+            utils_plotting::DrawAndAdd(*lHistoMC_oldBin_WW_addedSigH, "same", colorMCASh, 1.0, legend_pad1, "MC (ASl&ASh) WW", "lep", .055, true, markerStyleMCWW, 1.0);        
+        }
+        
     }
     utils_plotting::DrawAndAdd(*fitDataYield, "same", colorFit, 3.0, legend_pad1, "Fit data", "l", .055, true);
    
@@ -343,42 +335,66 @@ TCanvas*
     leg4->SetBorderSize(0);
     leg4->Draw();
 
+    // get all MC histos from pad1 and calculate ratio to data
+    TList* entries = legend_pad1->GetListOfPrimitives();
+    for (int i = 0; i < entries->GetEntries(); ++i) {
+        TLegendEntry* entry = (TLegendEntry*)entries->At(i);
+        // entry->Dump();
+        if (entry && std::string(entry->GetLabel()).find("MC") != std::string::npos) {
+            TObject* obj = entry->GetObject();
+            if (!obj) {continue;}
+            printf("Processing entry i: %d objectName: %s label: %s from legend_pad1\n", i, obj->GetName(), entry->GetLabel());
+            if (obj->InheritsFrom("TH1") && std::string(obj->GetName()).find("MC") == 0) {
+                TH1* histoMC = dynamic_cast<TH1*>(obj);
+                if (!histoMC) {continue;}
+                TH1& histoMC_dataBin = (histoMC->GetNbinsX() == lHistoData->GetNbinsX()) 
+                    ? *histoMC 
+                    : *utils_TH1::RebinDensityHistogram(*histoMC, *lHistoData, "reb"); 
+                // if (histoMC->GetNbinsX() != lHistoData->GetNbinsX()) {
+                //     printf("Rebinning %s for ratio with data\n", histoMC->GetName());
+                //     histoMC_dataBin = *utils_TH1::RebinDensityHistogram(*histoMC, *lHistoData, "reb");
+                // }
+                TH1* ratioHist = utils_TH1::DivideTH1ByTH1(histoMC_dataBin, *lHistoData, "", Form("over_%s", lHistoData->GetName()));
+                utils_plotting::DrawAndAdd(*ratioHist, "same", histoMC->GetLineColor(), 1.0, leg4, entry->GetLabel(), "lp", .055);
+            }
+        }
+    }
 
-    TH1* hMBoverData = utils_TH1::DivideTH1ByTH1(*lHistoMBonly_dataBin_WW, *lHistoData, 
-                                                 "", Form("hMBoverData_%s_%s", eventCutNo.data(), meson.data()));
-    utils_plotting::DrawAndAdd(*hMBoverData, "same", colorMCMB, 1.0, leg4, round ? "MB WW" : "MB MC WoW", "lp", .055, true, markerStyleMCWOW);
+    // TH1* hMBoverData = utils_TH1::DivideTH1ByTH1(*lHistoMBonly_dataBin_WW, *lHistoData, 
+    //                                              "", Form("hMBoverData_%s_%s", eventCutNo.data(), meson.data()));
+    // utils_plotting::DrawAndAdd(*hMBoverData, "same", colorMCMB, 1.0, leg4, round ? "MB WW" : "MC MB WoW", "lp", .055, true, markerStyleMCWOW);
     
 
     // sanity check for rebin inv function
-    TH1* lHistoMBonly_oldBin_WW_rebin = 
-        utils_TH1::RebinDensityHistogram(*lHistoMBonly_oldBin_WW,
-                                         *lHistoMBonly_dataBin_WW,
-                                         "reb");
-    TH1* lRatio = utils_TH1::DivideTH1ByTH1(*lHistoMBonly_oldBin_WW_rebin, *lHistoMBonly_dataBin_WW, "ratio");
-    utils_TH1::PrintBinsWithErrors(*lRatio);
+    // TH1* lHistoMBonly_oldBin_WW_rebin = 
+    //     utils_TH1::RebinDensityHistogram(*lHistoMBonly_oldBin_WW,
+    //                                      *lHistoMBonly_dataBin_WW,
+    //                                      "reb");
+    // TH1* lRatio = utils_TH1::DivideTH1ByTH1(*lHistoMBonly_oldBin_WW_rebin, *lHistoMBonly_dataBin_WW, "ratio");
+    // utils_TH1::PrintBinsWithErrors(*lRatio);
 
-    if (round){
-        // calc ratio AS ww over data
-        TH1* lHistoAShonly_dataBin_WW_fromReb = 
-            utils_TH1::RebinDensityHistogram(*lHistoMC_oldBin_WW_addedSigH,
-                                            *lHistoMBonly_dataBin_WW,
-                                            "reb");
+    // if (round){
+    //     // calc ratio AS ww over data
+    //     TH1* lHistoAShonly_dataBin_WW_fromReb = 
+    //         utils_TH1::RebinDensityHistogram(*lHistoMC_oldBin_WW_addedSigH,
+    //                                         *lHistoMBonly_dataBin_WW,
+    //                                         "reb");
 
-        TH1* hAShWWoverData = utils_TH1::DivideTH1ByTH1(*lHistoAShonly_dataBin_WW_fromReb, *lHistoData, 
-                                                    "", Form("hAShWWoverData%s_%s", eventCutNo.data(), meson.data()));
+    //     TH1* hAShWWoverData = utils_TH1::DivideTH1ByTH1(*lHistoAShonly_dataBin_WW_fromReb, *lHistoData, 
+    //                                                 "", Form("hAShWWoverData%s_%s", eventCutNo.data(), meson.data()));
         
-        // calc ratio AS wow over data
-        TH1* lHistoAShonly_dataBin_WOW_fromReb = 
-            utils_TH1::RebinDensityHistogram(*lHistoMC_oldBin_WOW_addedSig,
-                                            *lHistoMBonly_dataBin_WW,
-                                            "reb");
-        TH1* hAShWOWoverData = utils_TH1::DivideTH1ByTH1(*lHistoAShonly_dataBin_WOW_fromReb, *lHistoData, 
-                                                    "", Form("hAShWOWoverData%s_%s", eventCutNo.data(), meson.data()));
+    //     // calc ratio AS wow over data
+    //     TH1* lHistoAShonly_dataBin_WOW_fromReb = 
+    //         utils_TH1::RebinDensityHistogram(*lHistoMC_oldBin_WOW_addedSig,
+    //                                         *lHistoMBonly_dataBin_WW,
+    //                                         "reb");
+    //     TH1* hAShWOWoverData = utils_TH1::DivideTH1ByTH1(*lHistoAShonly_dataBin_WOW_fromReb, *lHistoData, 
+    //                                                 "", Form("hAShWOWoverData%s_%s", eventCutNo.data(), meson.data()));
 
-        // plot
-        utils_plotting::DrawAndAdd(*hAShWOWoverData, "same", colorMCASh, 1.0, leg4, "ASh WoW", "lp", .055);
-        utils_plotting::DrawAndAdd(*hAShWWoverData, "same", colorMCASh, 1.0, leg4, "ASh WW", "lp", .055);
-    }
+    //     // plot
+    //     utils_plotting::DrawAndAdd(*hAShWOWoverData, "same", colorMCASh, 1.0, leg4, "ASh WoW", "lp", .055);
+    //     utils_plotting::DrawAndAdd(*hAShWWoverData, "same", colorMCASh, 1.0, leg4, "ASh WW", "lp", .055);
+    // }
 
 
     // ratio mbmcww over data

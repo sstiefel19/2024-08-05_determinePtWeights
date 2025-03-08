@@ -8,14 +8,16 @@ struct sPars {
 
     typedef std::vector<sPars> tVPars;
 
-void doMultiRound(std::string theMeson, 
+void doMultiRound(std::map<int, std::string> const &theMapBaseDirs,
+                  std::string theMeson, 
                   std::string theCent,
                   std::map<std::string, tVPars const&> const &theMap,
                   std::vector<int> const &theRounds,
                   double theLeftMargin=0.25);
 
 TCanvas* 
-    fitMesonAndWriteToFile(int round, 
+    fitMesonAndWriteToFile(std::map<int, std::string> const &theMapBaseDirs,
+                           int round, 
                            std::string eventCutNo, 
                            std::string meson, 
                            const char* fitFunction, 
@@ -40,8 +42,8 @@ void comparePionSpectra2(){
 
     tVPars vPi0_101 = {{"oHag", "FM", "efficiency from MB"},                    // 0
                        {"tcmDoublePow", "FM", "efficiency from MB + ASh"},      // 1
-                       {"tcmDoublePow", "FM", "efficiency from MB + ASh + ASl"},// 2
-                       {"tcmDoublePow", "FM", "efficiency from MB + ASh + ASl"},// 3
+                       {"tcmDoublePow", "FM", "efficiency from MB + (ASl&ASh)"},// 2
+                       {"tcmDoublePow", "FM", "efficiency from MB + (ASl&ASh)"},// 3
                        {"tcmDoublePow", "FM", "efficiency from MB + ASh + ASl"},// 4
                        {"tcmDoublePow", "FM", "efficiency from MB + ASh + ASl"},// 5
                        {"tcmDoublePow", "FM", "efficiency from MB + ASh + ASl"},// 6
@@ -50,8 +52,8 @@ void comparePionSpectra2(){
     
     tVPars vPi0_135 = {{"oHag", "EX0FM", "efficiency from MB"},
                        {"oHag", "EX0FM", "efficiency from MB + ASh"},
-                       {"tcmDoublePow", "FM", "efficiency from MB + ASh + ASl"},
-                       {"tcmDoublePow", "FM", "efficiency from MB + ASh + ASl"},
+                       {"tcmDoublePow", "FM", "efficiency from MB + (ASl&ASh)"},
+                       {"tcmDoublePow", "FM", "efficiency from MB + (ASl&ASh)"},
                        {"tcmDoublePow", "FM", "efficiency from MB + ASh + ASl"},
                        {"tcmDoublePow", "FM", "efficiency from MB + ASh + ASl"},
                        {"tcmDoublePow", "FM", "efficiency from MB + ASh + ASl"},
@@ -60,8 +62,8 @@ void comparePionSpectra2(){
 
     tVPars vEta_101 = {{"oHag", "EX0FM", "efficiency from MB"},
                        {"oHag", "EX0FM", "efficiency from MB + ASh"},
-                       {"oHag", "EX0FM", "efficiency from MB + ASh + ASl"},
-                       {"oHag", "EX0FM", "efficiency from MB + ASh + ASl"},
+                       {"oHag", "EX0FM", "efficiency from MB + (ASl&ASh)"},
+                       {"oHag", "EX0FM", "efficiency from MB + (ASl&ASh)"},
                        {"oHag", "EX0FM", "efficiency from MB + ASh + ASl"},
                        {"oHag", "EX0FM", "efficiency from MB + ASh + ASl"},
                        {"oHag", "EX0FM", "efficiency from MB + ASh + ASl"},
@@ -70,8 +72,8 @@ void comparePionSpectra2(){
 
     tVPars vEta_135 = {{"oHag", "EX0FM", "efficiency from MB"},
                        {"tcmDoublePow", "FM", "efficiency from MB + ASh"},
-                       {"tcmDoublePow", "FM", "efficiency from MB + ASh + ASl"},
-                       {"tcmDoublePow", "FM", "efficiency from MB + ASh + ASl"},
+                       {"tcmDoublePow", "FM", "efficiency from MB + (ASl&ASh)"},
+                       {"tcmDoublePow", "FM", "efficiency from MB + (ASl&ASh)"},
                        {"tcmDoublePow", "FM", "efficiency from MB + ASh + ASl"},
                        {"tcmDoublePow", "FM", "efficiency from MB + ASh + ASl"},
                        {"tcmDoublePow", "FM", "efficiency from MB + ASh + ASl"},
@@ -83,26 +85,47 @@ void comparePionSpectra2(){
     theMap.insert({"Pi0_13530e03", vPi0_135});
     theMap.insert({"Eta_10130e03", vEta_101});
     theMap.insert({"Eta_13530e03", vEta_135});
-    
+
+        // all iterations
+    std::map<int, std::string> lMapBaseDirs{
+        {0, "/2023-_analysis/afterburner/2023-10-24_newCutNewSplinesWPCWFlexCock"},
+        {1, "/2023-_analysis/afterburner/2023-11-05_MBwoPtWAddedSigWptw_newDataTrain_mixedMesonAmp"},
+        {2, "/2023-_analysis/afterburner/2024-08-05_allASMC_ptw0b"},
+        {3, "/2023-_analysis/afterburner/2024-08-14_allASMC_ptw2"}, 
+        {4, "/2023-_analysis/afterburner/2024-10-25_allASMC_ptw3_multiEffiMerge_limPt"},
+        {5, "/2023-_analysis/afterburner/2024-10-31_allASMC_ptw4"},
+        {6, "/2023-_analysis/afterburner/2024-11-04_allASMC_ptw5"},
+        {7, "/2023-_analysis/afterburner/2024-11-07_allASMC_ptw6"}
+    };
+
+    // leave out /2023-11-05_MBwoPtWAddedSigWptw_newDataTrain_mixedMesonAmp
+    /* std::map<int, std::string> lMapBaseDirs{
+        {0, "/2023-_analysis/afterburner/2023-10-24_newCutNewSplinesWPCWFlexCock"},
+        {1, "/2023-_analysis/afterburner/2024-08-05_allASMC_ptw0b"},
+        {2, "/2023-_analysis/afterburner/2024-08-14_allASMC_ptw2"},
+        {3, "/2023-_analysis/afterburner/2024-10-25_allASMC_ptw3_multiEffiMerge_limPt"}
+    }; */
+
     gROOT->Reset();   
     gROOT->SetStyle("Plain");
 
     std::vector<int> lRounds{0, 1, 2, 3};
 
-    doMultiRound("Pi0", "10130e03", theMap, lRounds, 0.3/*theLeftMargin*/);
-    return;
-    // for (auto meson : std::vector<std::string>{"Pi0", "Eta"}){
-    //     for (auto evtcut : std::vector<std::string>{"10130e03", "13530e03"}){
-    //         printf("%s %s\n", meson.data(), evtcut.data());
-    //         doMultiRound(meson, evtcut, theMap, lRounds, 0.3/*theLeftMargin*/);
-    //     }
-    // }
+    // doMultiRound(lMapBaseDirs, "Pi0", "10130e03", theMap, lRounds, 0.3/*theLeftMargin*/);
     // return;
+    for (auto meson : std::vector<std::string>{"Pi0", "Eta"}){
+        for (auto evtcut : std::vector<std::string>{"10130e03", "13530e03"}){
+            printf("%s %s\n", meson.data(), evtcut.data());
+            doMultiRound(lMapBaseDirs, meson, evtcut, theMap, lRounds, 0.3/*theLeftMargin*/);
+        }
+    }
+    return;
 
 
     int round = 1;
 
     fitMesonAndWriteToFile(
+        lMapBaseDirs,
         round,
         "10130e03",
         "Pi0",
@@ -111,6 +134,7 @@ void comparePionSpectra2(){
         "efficiency from MB + AS");
     return;
     fitMesonAndWriteToFile(
+        lMapBaseDirs,
         round,
         "13530e03",
         "Pi0",
@@ -119,6 +143,7 @@ void comparePionSpectra2(){
         "efficiency from MB + AS");
         
     fitMesonAndWriteToFile(
+        lMapBaseDirs,
         round,
         "10130e03",
         "Eta",
@@ -127,6 +152,7 @@ void comparePionSpectra2(){
         "efficiency from MB + AS");    
 
     fitMesonAndWriteToFile(
+        lMapBaseDirs,
         round,
         "13530e03",
         "Eta",
@@ -136,6 +162,7 @@ void comparePionSpectra2(){
 
     // mod
     // fitMesonAndWriteToFile(
+    //    lMapBaseDirs,
     //     round,
     //     "13530e03",
     //     "Eta",
