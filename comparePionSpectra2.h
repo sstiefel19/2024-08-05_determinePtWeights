@@ -38,6 +38,11 @@ void squeezeAndPrepare_nSubPads(TVirtualPad& c, int n);
     TString fitFunctionsEta[nCentClasses] = {"modkfunc", "oHag", "oHag",  "doHag", "doHag", "rad", "oHag", "doHag", "oHag"};
     */
 
+    /*
+    next:
+    todo:
+        Check histo MC_Pi0InAcc_Pt in file ...ConvV1WithoutCorrectionAddSig to see if I can inv yield
+        from this histo. Compare then to the one in the normal data output file.*/
 void comparePionSpectra2(){
 
     tVPars vPi0_101 = {{"oHag", "FM", "efficiency from MB"},                    // 0
@@ -109,10 +114,12 @@ void comparePionSpectra2(){
     gROOT->Reset();   
     gROOT->SetStyle("Plain");
 
-    std::vector<int> lRounds{0, 1, 2, 3};
+    // std::vector<int> lRounds{0, 1, 2, 3};
+    std::vector<int> lRounds{0, 4, 5, 6, 7};
 
     // doMultiRound(lMapBaseDirs, "Pi0", "10130e03", theMap, lRounds, 0.3/*theLeftMargin*/);
     // return;
+
     for (auto meson : std::vector<std::string>{"Pi0", "Eta"}){
         for (auto evtcut : std::vector<std::string>{"10130e03", "13530e03"}){
             printf("%s %s\n", meson.data(), evtcut.data());

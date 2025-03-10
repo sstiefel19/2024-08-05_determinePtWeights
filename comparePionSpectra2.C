@@ -91,29 +91,71 @@ TCanvas*
     Double_t minPtPlot  = isPi0 ?  0.3 : .9;
     Double_t maxPtPlot  = isPi0 ? 30.0 : 14.0;
 
-    auto giveFilename = [&](int round, std::string theAfterBurnerConfig, std::string file) {
-        return (round >= 0) ? Form("%s/%s/%s_0d200009ab770c00amd0404000_0152101500000000/PbPb_5.02TeV/%s_%s_%s_0d200009ab770c00amd0404000_0152101500000000.root", 
-                                 theMapBaseDirs.at(round).data(), theAfterBurnerConfig.data(), eventCutNo.data(), meson.data(), file.data(), eventCutNo.data())
-                            : Form("");
+    auto giveFilename = [&](int round, std::string dataMC, std::string fileSuff) {
+        std::string lCutNo(Form("%s_0d200009ab770c00amd0404000_0152101500000000", eventCutNo.data()));
+        std::string lMCconfig(Form("MB-%s_separate", (round==2 || round==3) ? "bothASpremerged" : "AS"));
+        return Form("%s/%s/mesons/%s/PbPb_5.02TeV/%s_%s_GammaConvV1Correction%s_%s.root", 
+                    theMapBaseDirs.at(round).data(), lMCconfig.data(), lCutNo.data(), meson.data(), dataMC.data(), fileSuff.data(), lCutNo.data());
     };
+
+    std::string filenameData(giveFilename(round, "data", ""));
+    std::string filenameData_last(giveFilename(std::max(0, round-1), "data", ""));
+    std::string filenameAS(giveFilename(round,   "MC", "HistosAddSig"));
+    std::string filenameAS2(giveFilename(round,  "MC", "HistosAddSig2"));
+
+    TH1D* lHistoData               = (TH1D*)utils_files_strings::GetObjectFromPathInFile(filenameData.data(), "CorrectedYieldTrueEff");
+    TH1D* lHistoMBonly_dataBin_WW  = (TH1D*)utils_files_strings::GetObjectFromPathInFile(filenameData.data(), "MCYield_Meson");
+    TH1D* lHistoMBonly_oldBin_WW   = (TH1D*)utils_files_strings::GetObjectFromPathInFile(filenameData.data(), "MCYield_Meson_oldBin");
+    TH1D* lHistoMBonly_oldBin_WOW  = (TH1D*)utils_files_strings::GetObjectFromPathInFile(filenameData.data(), "MCYield_Meson_oldBinWOWeights");
     
-    std::string filename(giveFilename(round,       "MB-AS_separate/mesons", "data_GammaConvV1Correction"));
-    std::string filenameLast(giveFilename(round-1, "MB-AS_separate/mesons", "data_GammaConvV1Correction"));
-    
-    TH1D* lHistoData               = (TH1D*)utils_files_strings::GetObjectFromPathInFile(filename.data(), "CorrectedYieldTrueEff");
-    TH1D* lHistoMBonly_dataBin_WW  = (TH1D*)utils_files_strings::GetObjectFromPathInFile(filename.data(), "MCYield_Meson");
-    TH1D* lHistoMBonly_oldBin_WW   = (TH1D*)utils_files_strings::GetObjectFromPathInFile(filename.data(), "MCYield_Meson_oldBin");
-    TH1D* lHistoMBonly_oldBin_WOW  = (TH1D*)utils_files_strings::GetObjectFromPathInFile(filename.data(), "MCYield_Meson_oldBinWOWeights");
-    
-    // addedSig high pt 
-    TH1D* lHistoMC_oldBin_WW_addedSigH  = (TH1D*)utils_files_strings::GetObjectFromPathInFile(filename.data(), "MCYield_Meson_oldBin_AddedSig");
-    TH1D* lHistoMC_oldBin_WOW_addedSig  = (TH1D*)utils_files_strings::GetObjectFromPathInFile(filename.data(), "MCYield_Meson_oldBinWOWeights_AddedSig");
-    
-    // addedSig low pt
-    TH1D* lHistoMC_oldBin_WW_addedSigL  = (TH1D*)utils_files_strings::GetObjectFromPathInFile(filename.data(), "MCYield_Meson_oldBin_AddedSig");
-    TH1D* lHistoMC_oldBin_WOW_addedSigL  = (TH1D*)utils_files_strings::GetObjectFromPathInFile(filename.data(), "MCYield_Meson_oldBinWOWeights_AddedSig");
+    // addedSig (high pt or merged)
+    TH1D* lHistoMC_ASh_oldBin_WW  = round ? (TH1D*)utils_files_strings::GetObjectFromPathInFile(filenameData.data(), "MCYield_Meson_oldBin_AddedSig") : nullptr;
+    TH1D* lHistoMC_ASh_oldBin_WOW  = round ? (TH1D*)utils_files_strings::GetObjectFromPathInFile(filenameData.data(), "MCYield_Meson_oldBinWOWeights_AddedSig") : nullptr;
+            
 
 
+    // alternativ get from AS file
+    std::map<std::string, std::string> mMyname_ABname{
+        {"ldNdPtMC_MC_WW","MC_Meson_genPt"},
+        {"ldNdPtMC_MC_WOW","MC_Meson_genPt_properBinning_WOWeights"},
+        {"ldNdPtMC_MC_WW_oldBin","MC_Meson_genPt_oldBin"},
+        {"ldNdPtMC_MC_WOW_oldBin","MC_Meson_genPt_WOWeights"}
+    };
+
+    // AS first
+    // need number of events
+    TH1* lHistoNEventsASh = round ? (TH1*)utils_files_strings::GetObjectFromPathInFile(filenameAS.data(), "NEvents") : nullptr;
+    float lNEventsASh = lHistoNEventsASh ? lHistoNEventsASh->GetBinContent(1) : 0.;
+    std::map<std::string, TH1*> mAS_histos_inv; // no h because for round2 and round3 both mcs are merged
+    if (round){
+        for (auto const &p : mMyname_ABname){
+            TH1D* lHisto = (TH1D*)utils_files_strings::GetObjectFromPathInFile(filenameAS.data(), p.second.data());
+            mAS_histos_inv[p.first] = lHisto ? utils_computational::TranformD2DPtDYYieldToInvariantYield(*lHisto, "inv", nullptr, nullptr, 1./(lNEventsASh*1.6)) : nullptr;
+        }
+    }
+    TH1* lHistoMC_ASh_WW = round ? mAS_histos_inv["ldNdPtMC_MC_WW"] : nullptr;
+    TH1* lHistoMC_ASh_WOW = round ? mAS_histos_inv["ldNdPtMC_MC_WOW"] : nullptr;
+    TH1* lHistoMC_ASh_WW_oldBin = round ? mAS_histos_inv["ldNdPtMC_MC_WW_oldBin"] : nullptr;
+    TH1* lHistoMC_ASh_WOW_oldBin = round ? mAS_histos_inv["ldNdPtMC_MC_WOW_oldBin"] : nullptr;
+
+
+    // AS2 second
+    bool AS2 = (round >= 4);
+    TH1* lHistoNEventsASl = AS2 ? (TH1*)utils_files_strings::GetObjectFromPathInFile(filenameAS2.data(), "NEvents") : nullptr;
+    float lNEventsASl = lHistoNEventsASl ? lHistoNEventsASl->GetBinContent(1) : 0.;
+    std::map<std::string, TH1*> mASl_histos_inv;
+    if (AS2){
+        for (auto const &p : mMyname_ABname){
+            TH1D* lHisto = (TH1D*)utils_files_strings::GetObjectFromPathInFile(filenameAS2.data(), p.second.data());
+            mASl_histos_inv[p.first] = lHisto ? utils_computational::TranformD2DPtDYYieldToInvariantYield(*lHisto, "inv", nullptr, nullptr, 1./(lNEventsASl*1.6)) : nullptr;
+        }
+    }
+    TH1* lHistoMC_ASl_WW = AS2 ? mASl_histos_inv["ldNdPtMC_MC_WW"] : nullptr;
+    TH1* lHistoMC_ASl_WOW = AS2 ? mASl_histos_inv["ldNdPtMC_MC_WOW"] : nullptr; 
+    TH1* lHistoMC_ASl_WW_oldBin = AS2 ? mASl_histos_inv["ldNdPtMC_MC_WW_oldBin"] : nullptr;
+    TH1* lHistoMC_ASl_WOW_oldBin = AS2 ? mASl_histos_inv["ldNdPtMC_MC_WOW_oldBin"] : nullptr;
+
+    
     // get fit and histo from last iteration
     std::string fitName(Form("%s_Data_5TeV_%s_it%d", meson.data(), eventCutNo.substr(0,5).data(), round));
     //~ TF1* lastItFit = (TF1*)utils_files_strings::GetObjectFromPathInFile(filenameLastWeightsFile.data(), fitName.data());
@@ -127,7 +169,7 @@ TCanvas*
     graphYieldData->Fit(fitDataYield, fitOption, "", minPtPlot, maxPtPlot);
     // graphYieldData->Fit(fitDataYield, fitOption, "", 0.6, maxPtPlot);
     
-    // 3) ========================= plotting ===============================================
+    // 3) ========================= plotting =============================================
     TCanvas* cOneIt = new TCanvas(Form("canvas_%s_%i", fitDataYield->GetName(), round), 
                               Form("canvas_%s_%i", fitDataYield->GetName(), round), 
                               300, 1000);
@@ -190,13 +232,25 @@ TCanvas*
         }
         // it1 only ASh
         if (round==1) {
-            utils_plotting::DrawAndAdd(*lHistoMC_oldBin_WOW_addedSig, "same", colorMCASh, 1.0, legend_pad1, "ASh MC WOW", "lep", .055, true, markerStyleMCWOW, 1.0);
-            utils_plotting::DrawAndAdd(*lHistoMC_oldBin_WW_addedSigH, "same", colorMCASh, 1.0, legend_pad1,  "ASh MC WW", "lep", .055, true, markerStyleMCWW, 1.0);
+            utils_plotting::DrawAndAdd(*lHistoMC_ASh_oldBin_WOW, "same", colorMCASh, 1.0, legend_pad1, "ASh MC WOW", "lep", .055, true, markerStyleMCWOW, 1.0);
+            utils_plotting::DrawAndAdd(*lHistoMC_ASh_oldBin_WW,  "same", colorMCASh, 1.0, legend_pad1,  "ASh MC WW", "lep", .055, true, markerStyleMCWW, 1.0);
+            utils_plotting::DrawAndAdd(*lHistoMC_ASh_WOW,        "same", colorOldFit, 1.0, legend_pad1, "ASh MC WOW", "lep", .055, true, markerStyleMCWOW, 1.0);
+            utils_plotting::DrawAndAdd(*lHistoMC_ASh_WW,         "same", colorOldFit, 1.0, legend_pad1, "ASh MC WW", "lep", .055, true, markerStyleMCWW, 1.0);
         }
         // it2 and it3 ASl&ASh premerged
         if (round>1 && round<4){
-            utils_plotting::DrawAndAdd(*lHistoMC_oldBin_WOW_addedSig, "same", colorMCASh, 1.0, legend_pad1, "MC (ASl&ASh) WOW", "lep", .055, true, markerStyleMCWOW, 1.0);
-            utils_plotting::DrawAndAdd(*lHistoMC_oldBin_WW_addedSigH, "same", colorMCASh, 1.0, legend_pad1, "MC (ASl&ASh) WW", "lep", .055, true, markerStyleMCWW, 1.0);        
+            utils_plotting::DrawAndAdd(*lHistoMC_ASh_oldBin_WOW, "same", colorMCASh, 1.0, legend_pad1, "MC (ASl&ASh) WOW", "lep", .055, true, markerStyleMCWOW, 1.0);
+            utils_plotting::DrawAndAdd(*lHistoMC_ASh_oldBin_WW,  "same", colorMCASh, 1.0, legend_pad1, "MC (ASl&ASh) WW", "lep", .055, true, markerStyleMCWW, 1.0);        
+            utils_plotting::DrawAndAdd(*lHistoMC_ASh_WOW,        "same", colorOldFit, 1.0, legend_pad1, "MC (ASl&ASh) WOW", "lep", .055, true, markerStyleMCWOW, 1.0);
+            utils_plotting::DrawAndAdd(*lHistoMC_ASh_WW,         "same", colorOldFit, 1.0, legend_pad1, "MC (ASl&ASh) WW", "lep", .055, true, markerStyleMCWW, 1.0);
+        }
+
+        if (AS2){
+            utils_plotting::DrawAndAdd(*lHistoMC_ASh_WOW,        "same", colorOldFit, 1.0, legend_pad1, "ASh MC WOW", "lep", .055, true, markerStyleMCWOW, 1.0);
+            utils_plotting::DrawAndAdd(*lHistoMC_ASh_WW,         "same", colorOldFit, 1.0, legend_pad1, "ASh MC WW", "lep", .055, true, markerStyleMCWW, 1.0);
+            utils_plotting::DrawAndAdd(*lHistoMC_ASl_WOW_oldBin, "same", colorMCASl, 1.0, legend_pad1, "MC ASl WOW", "lep", .055, true, markerStyleMCWOW, 1.0);
+            utils_plotting::DrawAndAdd(*lHistoMC_ASl_WW_oldBin,  "same", colorMCASl, 1.0, legend_pad1, "MC ASl WW", "lep", .055, true, markerStyleMCWW, 1.0);
+
         }
         
     }
@@ -298,8 +352,8 @@ TCanvas*
 
     if (round) {
         // draw ratio of effi/effiLast
-        TH1 &lHistoTrueEffi     = *(TH1*)utils_files_strings::GetObjectFromPathInFile(filename.data(), "TrueMesonEffiPt");
-        TH1 *lHistoTrueEffiLast = round ? (TH1*)utils_files_strings::GetObjectFromPathInFile(filenameLast.data(), "TrueMesonEffiPt")
+        TH1 &lHistoTrueEffi     = *(TH1*)utils_files_strings::GetObjectFromPathInFile(filenameData.data(), "TrueMesonEffiPt");
+        TH1 *lHistoTrueEffiLast = round ? (TH1*)utils_files_strings::GetObjectFromPathInFile(filenameData_last.data(), "TrueMesonEffiPt")
                                         : static_cast<TH1*>(nullptr);
 
         utils_TH1::PrintBinsWithErrors(lHistoTrueEffi);
@@ -376,7 +430,7 @@ TCanvas*
     // if (round){
     //     // calc ratio AS ww over data
     //     TH1* lHistoAShonly_dataBin_WW_fromReb = 
-    //         utils_TH1::RebinDensityHistogram(*lHistoMC_oldBin_WW_addedSigH,
+    //         utils_TH1::RebinDensityHistogram(*lHistoMC_ASh_oldBin_WW,
     //                                         *lHistoMBonly_dataBin_WW,
     //                                         "reb");
 
@@ -385,7 +439,7 @@ TCanvas*
         
     //     // calc ratio AS wow over data
     //     TH1* lHistoAShonly_dataBin_WOW_fromReb = 
-    //         utils_TH1::RebinDensityHistogram(*lHistoMC_oldBin_WOW_addedSig,
+    //         utils_TH1::RebinDensityHistogram(*lHistoMC_ASh_oldBin_WOW,
     //                                         *lHistoMBonly_dataBin_WW,
     //                                         "reb");
     //     TH1* hAShWOWoverData = utils_TH1::DivideTH1ByTH1(*lHistoAShonly_dataBin_WOW_fromReb, *lHistoData, 
