@@ -92,7 +92,7 @@ void doMultiRound(std::map<int, std::string> const &theMapBaseDirs,
     }
 
     lCM.SaveAs(Form("%s.pdf", lNameC.data()));
-    lCM.SaveAs(Form("/repos_cloud/thesis_writing/figures/%s.pdf", lNameC.data()));
+    lCM.SaveAs(Form("~/repos_cloud/thesis_writing/figures/%s.pdf", lNameC.data()));
     
 }
 
@@ -143,6 +143,99 @@ TCanvas*
     TH1D* lHistoMC_ASh_oldBin_WW_fd  = round ? (TH1D*)utils_files_strings::GetObjectFromPathInFile(filenameData.data(), "MCYield_Meson_oldBin_AddedSig") : nullptr;
     TH1D* lHistoMC_ASh_oldBin_WOW_fd  = round ? (TH1D*)utils_files_strings::GetObjectFromPathInFile(filenameData.data(), "MCYield_Meson_oldBinWOWeights_AddedSig") : nullptr;
             
+    // alternatively 2: get counts directly from trainfile and transform to inv yield myself
+    float lMeson2GammaBR = isPi0 ? 0.98798 : 0.3931;
+    std::string eventCutNoMC(eventCutNo);
+    eventCutNoMC.replace(5,2,"05");
+    std::string eventCutNoMCAdd(eventCutNoMC);
+    eventCutNoMCAdd.replace(6,1,"2");
+    bool isCentral = eventCutNo.substr(0, 3) == "101";
+
+    // theMBAS = one of  {"mb", "as", "as2"}
+    // returns nullptr for invalid round, theMBAS combinations. 
+    auto computeInvariantMCYieldFromTrainFile = [&](std::string theMBAS){
+        bool lIsMB = theMBAS=="mb";
+        bool lIsAS2 = theMBAS=="as2";
+        std::string lConfig(lIsMB 
+            ? "994" 
+            : isPi0 
+                ? "997" 
+                : "996"); 
+        if (!lIsMB && (round<3)){
+            switch (round) {
+                case 1: lConfig = isPi0 ? "995" : "996";
+                case 2: lConfig = isPi0 ? "997" : "998";
+                default: return static_cast<TH1*>(nullptr);     
+            }
+        }
+
+        // catch invalid configs
+        if ( (!round && !lIsMB) || (round<4 && lIsAS2)){
+            const char* pref = "computeInvariantMCYieldFromTrainFile(): INFO:"; 
+            printf("%s ((!round && !lIsMB) || (round<4 && lIsAS2)) is true, returning nullptr.\n", 
+                pref);
+            printf("%s (round, theMBAS.data(), lConfig.data()) : (%i, %s, %s)\n", 
+                pref, round, theMBAS.data(), lConfig.data());
+            return static_cast<TH1*>(nullptr);
+        }
+
+        std::string abac(isCentral ? "ab" : "ac");
+        std::string lTrainSubDir(lIsMB 
+            ? (round<2)                 // isMB &&
+                ? "mc"                  //   round < 2
+                : abac.data()           //   round >= 2
+
+            : (round==1)                // as or as2 &&
+                ? "LHC20g10"            //   round=1 
+                : (round<4) 
+                    ? "LHC20g10-LHC24a1-LHC24a2_merged"
+                    : lIsAS2 
+                        ? "LHC24a2"
+                        : "LHC20g10");
+
+        lTrainSubDir.append(lIsAS2 
+            ? Form("/child%s_runlist_1", isCentral ? "1" : "2")
+            : "");
+        
+        std::string lFname(Form("GCo_%s.root", lConfig.data()));
+        if (lIsMB && round<2){
+            lFname = Form("GammaConvV1_%s_%s-merged.root", lConfig.data(), abac.data());
+        }
+        if (!lIsMB && round==1) {
+            lFname = Form("GammaConvV1_%s_%s.root", lConfig.data(), isPi0 ? "pi0" : "eta");
+        }
+
+        std::string lMainDir(Form("GammaConvV1_%s/", lConfig.data()));
+        std::string lEventCutNo(lIsMB ? eventCutNoMC : eventCutNoMCAdd);
+
+        GCo lGCo(Form("%s/trains/%s/%s",
+                    theMapBaseDirs.at(round).data(), lTrainSubDir.data(),lFname.data()),
+                 lMainDir,
+                 lEventCutNo,
+                 lPhotMesCutNo);    
+        float nEvents = ((TH1*)lGCo.GetFromESD("NEvents"))->GetBinContent(1); 
+        TH1* lHistoMesonsInRap= (TH1*)lGCo.GetFromMC(Form("MC_%s_Pt", meson.data()));
+        TH1* hInvYield_WW = lHistoMesonsInRap 
+        ? utils_computational::TranformD2DPtDYYieldToInvariantYield(
+            *utils_TH1::DivideTH1ByBinWidths(*lHistoMesonsInRap, "divW", nullptr, nullptr),
+            "inv", Form("MC_invYield_WW_%s", theMBAS.data()), nullptr, 1./(nEvents*1.6*lMeson2GammaBR)) // 1.6 = deltaY
+        : nullptr;
+        
+        return hInvYield_WW;
+    };
+
+    // compute all weighted inv mc yields. They should agree very well with last iterations' fits.
+    std::vector<TH1*> vInvMCYields_WW;
+    std::vector<std::string> vMCs({"mb"});
+    if (round){vMCs.push_back("as");}
+    if (round>3){vMCs.push_back("as2");}
+    for (auto const &mc : vMCs){
+        TH1 *hInvYield = computeInvariantMCYieldFromTrainFile(mc);
+        if (hInvYield) {
+            printf("Adding %s to vInvMCYields_WW\n", hInvYield->GetName()); 
+            vInvMCYields_WW.push_back(hInvYield); 
+        }
+    }
 
     // alternatively get from AS file
     std::map<std::string, std::string> mMyname_ABname{
@@ -151,8 +244,6 @@ TCanvas*
         {"ldNdPtMC_MC_WW_oldBin","MC_Meson_genPt_oldBin"}, // find this in ab
         {"ldNdPtMC_MC_WOW_oldBin","MC_Meson_genPt_WOWeights"}
     };
-
-    float lMeson2GammaBR = isPi0 ? 0.98798 : 0.3931;
 
     // AS first
     // need number of events
@@ -178,77 +269,6 @@ TCanvas*
     TH1* lHistoMC_ASh_WOW_oldBin =  mAS_histos_inv["ldNdPtMC_MC_WOW_oldBin"];
 
     
-    // alternatively 2: get counts directly from trainfile and transform to inv yield myself
-    std::string trainDir(Form("%s/../trains_ptw6", theMapBaseDirs.at(round).data()));
-    std::string eventCutNoMC(eventCutNo);
-    eventCutNoMC.replace(5,2,"05");
-    std::string eventCutNoMCAdd(eventCutNoMC);
-    eventCutNoMCAdd.replace(6,1,"2");
-    bool isCentral = eventCutNo.substr(0, 3) == "101";
-
-    // this points to 10130e03_0d200009ab770c00amd0404000_0152101500000000/trains for instance
-    // where in trains/ there should be links to the actual train files
-    // auto giveTrainDir = [&](int round) {
-    //     std::string lMCconfig(Form("MB-%s_separate", (round==2 || round==3) ? "bothASpremerged" : "AS"));
-    //     return Form("%s/%s/mesons/%s/trains", 
-    //                 theMapBaseDirs.at(round).data(), lMCconfig.data(), lCutNo.data());};
-
-    // todo: write function to retrieve hInvYield<MB, AS, AS2>WW from a given train file
-    auto getInvYieldTrain = [&](std::string theConfig, std::string theMBAS){
-        std::string lFname(Form("GCo_%s.root", theConfig.data()));
-        std::string lMainDir(Form("GammaConvV1_%s/", theConfig.data()));
-        
-        std::string lEventCutNo((theMBAS=="ab" || theMBAS=="ac") ? eventCutNoMC : eventCutNoMCAdd);
-
-        if (theMBAS=="LHC24a2"){
-            theMBAS.append(Form("/child%s_runlist_1", isCentral ? "1" : "2"));
-        }
-        
-        GCo lGCo(Form("%s/trains/%s/%s", theMapBaseDirs.at(round).data(), theMBAS.data(),lFname.data()),
-                 lMainDir,
-                 lEventCutNo,
-                 lPhotMesCutNo);    
-        float nEvents = ((TH1*)lGCo.GetFromESD("NEvents"))->GetBinContent(1); 
-        TH1* lHistoMesonsInRap= (TH1*)lGCo.GetFromMC(Form("MC_%s_Pt", meson.data()));
-        TH1* hInvYield_WW = lHistoMesonsInRap 
-        ? utils_computational::TranformD2DPtDYYieldToInvariantYield(
-            *utils_TH1::DivideTH1ByBinWidths(*lHistoMesonsInRap, "divW", nullptr, nullptr),
-            "inv", Form("MC_invYield_WW_%s", theMBAS.data()), nullptr, 1./(nEvents*1.6*lMeson2GammaBR))
-        : nullptr;
-        
-        return hInvYield_WW;
-    };
-    std::string lConfigMB("994");
-    std::string lConfigAS(isPi0 ? "997" : "996");
-    TH1* hInvYieldMB_WW = getInvYieldTrain(lConfigMB, isCentral ? "ab" : "ac");
-    TH1* hInvYieldAS_WW = getInvYieldTrain(lConfigAS, "LHC20g10");
-    TH1* hInvYieldAS2_WW = getInvYieldTrain(lConfigAS, "LHC24a2");
-    
-
-    // MB first
-    /*
-    GCo lGCo_MB(Form("%s/out_LHC20e3a_994_1_0_1/GCo_994.root", trainDir.data()), 
-        "GammaConvV1_994/", eventCutNoMC, lPhotMesCutNo, true, "READ");
-    TH1* lHistoMesonsInRap_MB = (TH1*)lGCo_MB.GetFromMC(Form("MC_%s_Pt", meson.data()));
-
-    float lNEventsMB = ((TH1*)lGCo_MB.GetFromESD("NEvents"))->GetBinContent(1);
-    TH1* hInvYieldMB_WW = lHistoMesonsInRap_MB 
-        ? utils_computational::TranformD2DPtDYYieldToInvariantYield(
-            *utils_TH1::DivideTH1ByBinWidths(*lHistoMesonsInRap_MB, "MB_divW", nullptr, nullptr),
-            "inv", nullptr, nullptr, 1./(lNEventsMB*1.6*lMeson2GammaBR))
-        : nullptr;
-    
-    GCo lGCo_AS(Form("%s/out_LHC24a1a2_995_%s_1_2/GCo_995.root", trainDir.data(), isPi0 ? "1" : "6"), 
-        "GammaConvV1_995/", eventCutNoMCAdd, lPhotMesCutNo, true, "READ");
-    TH1* lHistoMesonsInRap_AS = (TH1*)lGCo_AS.GetFromMC(Form("MC_%s_Pt", meson.data()));
-    
-    TH1* hInvYieldAS_WW = lHistoMesonsInRap_AS 
-        ? utils_computational::TranformD2DPtDYYieldToInvariantYield(
-            *utils_TH1::DivideTH1ByBinWidths(*lHistoMesonsInRap_AS, "AS_divW", nullptr, nullptr),
-            "inv", nullptr, nullptr, 1./(lNEventsASh*1.6*lMeson2GammaBR))
-        : nullptr;
-*/
-
     // AS2 second
     bool AS2 = (round >= 400);
     TH1* lHistoNEventsASl = AS2 ? (TH1*)utils_files_strings::GetObjectFromPathInFile(filenameAS2.data(), "NEvents") : nullptr;
@@ -353,9 +373,9 @@ TCanvas*
             // utils_plotting::DrawAndAdd(*lHistoMC_ASh_WOW_oldBin, "same", colorOldFit, 1.0, legend_pad1, "ASh MC WOW fileAS", "lep", .055, true, markerStyleMCWOW, 1.0);
             // utils_plotting::DrawAndAdd(*lHistoMC_ASh_WW_oldBin,  "same", colorOldFit, 1.0, legend_pad1, "ASh MC WW fileAS", "lep", .055, true, markerStyleMCWW, 1.0);
             
-            utils_plotting::DrawAndAdd(*hInvYieldMB_WW, "same", kBlue, 1.0, legend_pad1, "MB MC WW own calc", "lep", .055, true, markerStyleMCWW, 1.0);
-            utils_plotting::DrawAndAdd(*hInvYieldAS_WW, "same", kOrange, 1.0, legend_pad1, "ASh MC WW own calc", "lep", .055, true, markerStyleMCWW, 1.0);
-            utils_plotting::DrawAndAdd(*hInvYieldAS2_WW, "same", kMagenta, 1.0, legend_pad1, "ASl MC WW own calc", "lep", .055, true, markerStyleMCWW, 1.0);
+            // utils_plotting::DrawAndAdd(*hInvYieldMB_WW, "same", kBlue, 1.0, legend_pad1, "MB MC WW own calc", "lep", .055, true, markerStyleMCWW, 1.0);
+            // utils_plotting::DrawAndAdd(*hInvYieldAS_WW, "same", kOrange, 1.0, legend_pad1, "ASh MC WW own calc", "lep", .055, true, markerStyleMCWW, 1.0);
+            // utils_plotting::DrawAndAdd(*hInvYieldAS2_WW, "same", kMagenta, 1.0, legend_pad1, "ASl MC WW own calc", "lep", .055, true, markerStyleMCWW, 1.0);
             
         }
         // it2 and it3 ASl&ASh premerged

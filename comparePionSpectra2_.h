@@ -41,7 +41,7 @@ struct sPars {
 void doMultiRound(std::map<int, std::string> const &theMapBaseDirs,
                   std::string theMeson, 
                   std::string theCent,
-                  std::map<std::string, tVPars const&> const &theMap,
+                  std::map<std::string, tVPars const&> const &theMap_mesonCent_params,
                   std::vector<int> const &theRounds,
                   double theLeftMargin=0.25);
 
@@ -115,11 +115,11 @@ void comparePionSpectra2_(){
                        {"tcmDoublePow", "FM", "efficiency from MB + ASh + ASl"}
                       };
     
-    std::map<std::string, tVPars const&> theMap;
-    theMap.insert({"Pi0_10130e03", vPi0_101});
-    theMap.insert({"Pi0_13530e03", vPi0_135});
-    theMap.insert({"Eta_10130e03", vEta_101});
-    theMap.insert({"Eta_13530e03", vEta_135});
+    std::map<std::string, tVPars const&> lMap_mesonCent_params;
+    lMap_mesonCent_params.insert({"Pi0_10130e03", vPi0_101});
+    lMap_mesonCent_params.insert({"Pi0_13530e03", vPi0_135});
+    lMap_mesonCent_params.insert({"Eta_10130e03", vEta_101});
+    lMap_mesonCent_params.insert({"Eta_13530e03", vEta_135});
 
         // all iterations
     std::map<int, std::string> lMapBaseDirs{
@@ -137,16 +137,16 @@ void comparePionSpectra2_(){
     gROOT->Reset();   
     gROOT->SetStyle("Plain");
 
-    // std::vector<int> lRounds{0, 1, 2, 3};
-    std::vector<int> lRounds{7};
+    std::vector<int> lRounds{0, 1, 2, 3, 4, 5, 6, 7};
+    // std::vector<int> lRounds{7};
 
-    doMultiRound(lMapBaseDirs, "Eta", "10130e03", theMap, lRounds, 0.3/*theLeftMargin*/);
-    return;
+    // doMultiRound(lMapBaseDirs, "Pi0", "10130e03", lMap_mesonCent_params, lRounds, 0.3/*theLeftMargin*/);
+    // return;
 
     for (auto meson : std::vector<std::string>{"Pi0", "Eta"}){
         for (auto evtcut : std::vector<std::string>{"10130e03", "13530e03"}){
             printf("%s %s\n", meson.data(), evtcut.data());
-            doMultiRound(lMapBaseDirs, meson, evtcut, theMap, lRounds, 0.3/*theLeftMargin*/);
+            doMultiRound(lMapBaseDirs, meson, evtcut, lMap_mesonCent_params, lRounds, 0.3/*theLeftMargin*/);
         }
     }
     return;
