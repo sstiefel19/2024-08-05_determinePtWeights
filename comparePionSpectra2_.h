@@ -73,7 +73,7 @@ void squeezeAndPrepare_nSubPads(TVirtualPad& c, int n);
     todo:
         Check histo MC_Pi0InAcc_Pt in file ...ConvV1WithoutCorrectionAddSig to see if I can inv yield
         from this histo. Compare then to the one in the normal data output file.*/
-void comparePionSpectra2(){
+void comparePionSpectra2_(){
 
     tVPars vPi0_101 = {{"oHag", "FM", "efficiency from MB"},                    // 0
                        {"tcmDoublePow", "FM", "efficiency from MB + ASh"},      // 1
@@ -123,31 +123,24 @@ void comparePionSpectra2(){
 
         // all iterations
     std::map<int, std::string> lMapBaseDirs{
-        {0, "/2023-_analysis/afterburner/2023-10-24_newCutNewSplinesWPCWFlexCock"},
-        {1, "/2023-_analysis/afterburner/2023-11-05_MBwoPtWAddedSigWptw_newDataTrain_mixedMesonAmp"},
-        {2, "/2023-_analysis/afterburner/2024-08-05_allASMC_ptw0b"},
-        {3, "/2023-_analysis/afterburner/2024-08-14_allASMC_ptw2"}, 
-        {4, "/2023-_analysis/afterburner/2024-10-25_allASMC_ptw3_multiEffiMerge_limPt"},
-        {5, "/2023-_analysis/afterburner/2024-10-31_allASMC_ptw4"},
-        {6, "/2023-_analysis/afterburner/2024-11-04_allASMC_ptw5"},
-        {7, "/2023-_analysis/afterburner/2024-11-07_allASMC_ptw6"}
+        {0, "~/2023-_analysis/afterburner/2023-10-24_newCutNewSplinesWPCWFlexCock"},
+        {1, "~/2023-_analysis/afterburner/2023-11-05_MBwoPtWAddedSigWptw_newDataTrain_mixedMesonAmp"},
+        {2, "~/2023-_analysis/afterburner/2024-08-05_allASMC_ptw0b"},
+        {3, "~/2023-_analysis/afterburner/2024-08-14_allASMC_ptw2"}, 
+        {4, "~/2023-_analysis/afterburner/2024-10-25_allASMC_ptw3_multiEffiMerge_limPt"},
+        {5, "~/2023-_analysis/afterburner/2024-10-31_allASMC_ptw4"},
+        {6, "~/2023-_analysis/afterburner/2024-11-04_allASMC_ptw5"},
+        {7, "~/2023-_analysis/afterburner/2024-11-07_allASMC_ptw6"}
+        // {7, "~/2025/2025-03-18_AliPhysics_testPtWeights/afterburner_ptw6"}
     };
-
-    // leave out /2023-11-05_MBwoPtWAddedSigWptw_newDataTrain_mixedMesonAmp
-    /* std::map<int, std::string> lMapBaseDirs{
-        {0, "/2023-_analysis/afterburner/2023-10-24_newCutNewSplinesWPCWFlexCock"},
-        {1, "/2023-_analysis/afterburner/2024-08-05_allASMC_ptw0b"},
-        {2, "/2023-_analysis/afterburner/2024-08-14_allASMC_ptw2"},
-        {3, "/2023-_analysis/afterburner/2024-10-25_allASMC_ptw3_multiEffiMerge_limPt"}
-    }; */
 
     gROOT->Reset();   
     gROOT->SetStyle("Plain");
 
     // std::vector<int> lRounds{0, 1, 2, 3};
-    std::vector<int> lRounds{0, 4, 5, 6, 7};
+    std::vector<int> lRounds{7};
 
-    doMultiRound(lMapBaseDirs, "Pi0", "10130e03", theMap, lRounds, 0.3/*theLeftMargin*/);
+    doMultiRound(lMapBaseDirs, "Eta", "10130e03", theMap, lRounds, 0.3/*theLeftMargin*/);
     return;
 
     for (auto meson : std::vector<std::string>{"Pi0", "Eta"}){

@@ -28,16 +28,16 @@
 * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.                    *
 ***********************************************************************************/
 
-#include "/analysisSoftware/utils_sstiefel_2024/include/GCo.h"           
-#include "/analysisSoftware/utils_sstiefel_2024/include/utils_computational.h" 
-#include "/analysisSoftware/utils_sstiefel_2024/include/utils_files_strings.h"
-#include "/analysisSoftware/utils_sstiefel_2024/include/utils_fits.h"
-#include "/analysisSoftware/utils_sstiefel_2024/include/utils_plotting.h"
-#include "/analysisSoftware/utils_sstiefel_2024/include/utils_utils.h"
-#include "/analysisSoftware/utils_sstiefel_2024/include/utils_TF1.h"           
-#include "/analysisSoftware/utils_sstiefel_2024/include/utils_TH1.h"
+#include "/Users/stephanstiefelmaier/analysisSoftware/utils_sstiefel_2024/include/GCo.h"           
+#include "/Users/stephanstiefelmaier/analysisSoftware/utils_sstiefel_2024/include/utils_computational.h" 
+#include "/Users/stephanstiefelmaier/analysisSoftware/utils_sstiefel_2024/include/utils_files_strings.h"
+#include "/Users/stephanstiefelmaier/analysisSoftware/utils_sstiefel_2024/include/utils_fits.h"
+#include "/Users/stephanstiefelmaier/analysisSoftware/utils_sstiefel_2024/include/utils_plotting.h"
+#include "/Users/stephanstiefelmaier/analysisSoftware/utils_sstiefel_2024/include/utils_utils.h"
+#include "/Users/stephanstiefelmaier/analysisSoftware/utils_sstiefel_2024/include/utils_TF1.h"           
+#include "/Users/stephanstiefelmaier/analysisSoftware/utils_sstiefel_2024/include/utils_TH1.h"
 
-#include "/analysisSoftware/CommonHeaders/FittingGammaConversion.h"
+#include "/Users/stephanstiefelmaier/analysisSoftware/CommonHeaders/FittingGammaConversion.h"
 
 
 #include "TROOT.h"
@@ -117,8 +117,8 @@ TH1D* makeRatioDiffBinnings(TH1D* h1, TH1D* h2, const char* name, const char* ti
     // Calculates the ratio of a histogram and a fit, with the posibility to integrate the function in the same
     // bin width as the data
     //**********************************************************************************************************
-    TH1D* CalculateHistoRatioToFit (TH1D* histo, TF1* fit, Bool_t integrateFunction=kFALSE){
-        TH1D* histo2                = (TH1D*)histo->Clone("Dummy");
+    TH1* CalculateHistoRatioToFit (TH1* histo, TF1* fit, Bool_t integrateFunction=kFALSE){
+        TH1* histo2                = (TH1*)histo->Clone("Dummy");
         for( Int_t I = 1; I < histo->GetNbinsX() +1 ;I++){
             Double_t xValue         = histo2->GetBinCenter(I);
             Double_t yValue         = fit->Eval(xValue);
