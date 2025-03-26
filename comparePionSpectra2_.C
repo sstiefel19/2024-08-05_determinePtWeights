@@ -262,6 +262,7 @@ TCanvas*
     
     // alternatively get from AS file
     //*
+    /*
     std::map<std::string, std::string> mMyname_ABname{
         {"ldNdPtMC_MC_WW","MC_Meson_genPt"},
         {"ldNdPtMC_MC_WOW","MC_Meson_genPt_properBinning_WOWeights"},
@@ -308,6 +309,7 @@ TCanvas*
     TH1* lHistoMC_ASl_WOW = AS2 ? mASl_histos_inv["ldNdPtMC_MC_WOW"] : nullptr; 
     TH1* lHistoMC_ASl_WW_oldBin = AS2 ? mASl_histos_inv["ldNdPtMC_MC_WW_oldBin"] : nullptr;
     TH1* lHistoMC_ASl_WOW_oldBin = AS2 ? mASl_histos_inv["ldNdPtMC_MC_WOW_oldBin"] : nullptr;
+    */
 
     
     // get fit and histo from last iteration
@@ -384,11 +386,7 @@ TCanvas*
     
     // not in 0th iteration
     if (round){
-        // MBMC WW only from 2nd iteration onwards
-        if (round>1) {
-            utils_plotting::DrawAndAdd(*lHistoMBonly_oldBin_WW, "same", colorMCMB, 1.0, legend_pad1, "MC MB WW", "lep", .055, true, markerStyleMCWW, 1.0);
-        }
-
+ 
         // plot inv mc yields ww
         for (TH1* ih : vInvMCYields_WW){
             if (!ih) { continue; }
@@ -403,38 +401,8 @@ TCanvas*
                         : kOrange; 
             utils_plotting::DrawAndAdd(h, "same", lColor, 1.0, legend_pad1, h.GetName(), "lep", 0.055, true, markerStyleMCWW, 1.0);
         }
-
-        // it1 only ASh
-        if (round==1) {
-            utils_plotting::DrawAndAdd(*lHistoMC_ASh_oldBin_WOW_fd, "same", colorMCASh, 1.0, legend_pad1, "ASh MC WOW file data", "lep", .055, true, markerStyleMCWOW, 1.0);
-            utils_plotting::DrawAndAdd(*lHistoMC_ASh_oldBin_WW_fd,  "same", colorMCASh, 1.0, legend_pad1,  "ASh MC WW file data", "lep", .055, true, markerStyleMCWW, 1.0);
-            // utils_plotting::DrawAndAdd(*lHistoMC_ASh_WOW,        "same", colorOldFit, 1.0, legend_pad1, "ASh MC WOW", "lep", .055, true, markerStyleMCWOW, 1.0);
-            // utils_plotting::DrawAndAdd(*lHistoMC_ASh_WW,         "same", colorOldFit, 1.0, legend_pad1, "ASh MC WW", "lep", .055, true, markerStyleMCWW, 1.0);
-            // utils_plotting::DrawAndAdd(*lHistoMC_ASh_WOW_oldBin, "same", colorOldFit, 1.0, legend_pad1, "ASh MC WOW fileAS", "lep", .055, true, markerStyleMCWOW, 1.0);
-            // utils_plotting::DrawAndAdd(*lHistoMC_ASh_WW_oldBin,  "same", colorOldFit, 1.0, legend_pad1, "ASh MC WW fileAS", "lep", .055, true, markerStyleMCWW, 1.0);
-            
-            // utils_plotting::DrawAndAdd(*hInvYieldMB_WW, "same", kBlue, 1.0, legend_pad1, "MB MC WW own calc", "lep", .055, true, markerStyleMCWW, 1.0);
-            // utils_plotting::DrawAndAdd(*hInvYieldAS_WW, "same", kOrange, 1.0, legend_pad1, "ASh MC WW own calc", "lep", .055, true, markerStyleMCWW, 1.0);
-            // utils_plotting::DrawAndAdd(*hInvYieldAS2_WW, "same", kMagenta, 1.0, legend_pad1, "ASl MC WW own calc", "lep", .055, true, markerStyleMCWW, 1.0);
-            
-        }
-        // it2 and it3 ASl&ASh premerged
-        if (round>1 && round<4){
-            utils_plotting::DrawAndAdd(*lHistoMC_ASh_oldBin_WOW_fd, "same", colorMCASh, 1.0, legend_pad1, "MC (ASl&ASh) WOW", "lep", .055, true, markerStyleMCWOW, 1.0);
-            utils_plotting::DrawAndAdd(*lHistoMC_ASh_oldBin_WW_fd,  "same", colorMCASh, 1.0, legend_pad1, "MC (ASl&ASh) WW", "lep", .055, true, markerStyleMCWW, 1.0);        
-            utils_plotting::DrawAndAdd(*lHistoMC_ASh_WOW,        "same", colorOldFit, 1.0, legend_pad1, "MC (ASl&ASh) WOW", "lep", .055, true, markerStyleMCWOW, 1.0);
-            utils_plotting::DrawAndAdd(*lHistoMC_ASh_WW,         "same", colorOldFit, 1.0, legend_pad1, "MC (ASl&ASh) WW", "lep", .055, true, markerStyleMCWW, 1.0);
-        }
-
-        if (AS2){
-            utils_plotting::DrawAndAdd(*lHistoMC_ASh_WOW,        "same", colorOldFit, 1.0, legend_pad1, "ASh MC WOW", "lep", .055, true, markerStyleMCWOW, 1.0);
-            utils_plotting::DrawAndAdd(*lHistoMC_ASh_WW,         "same", colorOldFit, 1.0, legend_pad1, "ASh MC WW", "lep", .055, true, markerStyleMCWW, 1.0);
-            utils_plotting::DrawAndAdd(*lHistoMC_ASl_WOW_oldBin, "same", colorMCASl, 1.0, legend_pad1, "MC ASl WOW", "lep", .055, true, markerStyleMCWOW, 1.0);
-            utils_plotting::DrawAndAdd(*lHistoMC_ASl_WW_oldBin,  "same", colorMCASl, 1.0, legend_pad1, "MC ASl WW", "lep", .055, true, markerStyleMCWW, 1.0);
-
-        }
-        
     }
+    
     if (lastItFit){
         utils_plotting::DrawAndAdd(*lastItFit, "same", kBlue, 3.0, legend_pad1, "last Fit data", "l", .055, true);
     }
