@@ -54,8 +54,9 @@ TCanvas*
                            const char* fitOption, 
                            const char* mcTag, 
                            float yMaxRatio=3.,
-                           double theLeftMargin=0.0,
-                           bool verticallyTight=true);
+                           double theLeftMargin=0.,
+                           bool verticallyTight=true,
+                           std::string theDir="");
 
 TH1D* getWeightedMCHistogramFromLastFitAndLastMCWOW(TH1* thisMCWOW, TF1* lastFit, TH1* lastMCWOW);
 void setMarginsToZero(TVirtualPad& vpad);
@@ -137,7 +138,7 @@ void comparePionSpectra2_(){
     gROOT->Reset();   
     gROOT->SetStyle("Plain");
 
-    std::vector<int> lRounds{0, 1, 2, 3, 4, 5, 6, 7};
+    std::vector<int> lRounds{5, 6, 7};
     // std::vector<int> lRounds{7};
 
     // doMultiRound(lMapBaseDirs, "Pi0", "10130e03", lMap_mesonCent_params, lRounds, 0.3/*theLeftMargin*/);
