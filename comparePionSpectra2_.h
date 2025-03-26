@@ -138,8 +138,9 @@ void comparePionSpectra2_(){
     gROOT->Reset();   
     gROOT->SetStyle("Plain");
 
-    std::vector<int> lRounds{7};
-    // std::vector<int> lRounds{7};
+    // std::vector<int> lRounds{0, 1, 2, 3, 4, 5, 6, 7};
+    std::vector<int> lRounds{0, 2, 3, 4, 5, 6};
+    // std::vector<int> lRounds{6, 7};
 
     // doMultiRound(lMapBaseDirs, "Pi0", "10130e03", lMap_mesonCent_params, lRounds, 0.3/*theLeftMargin*/);
     // return;
