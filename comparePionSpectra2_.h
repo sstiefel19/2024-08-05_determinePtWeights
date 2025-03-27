@@ -43,6 +43,7 @@ void doMultiRound(std::map<int, std::string> const &theMapBaseDirs,
                   std::map<std::string, tVPars const&> const &theMap_mesonCent_params,
                   std::vector<int> const &theRounds,
                   double theLeftMargin=0.25,
+                  double theRightMargin=0.05,
                   std::string const &theDir="");
 
 TCanvas* 
@@ -53,8 +54,9 @@ TCanvas*
                            const char* fitFunction, 
                            const char* fitOption, 
                            const char* mcTag, 
-                           float yMaxRatio=3.,
-                           double theLeftMargin=0.,
+                           size_t thePlotWidth, // in pixels
+                           double theLeftMargin=0.25,
+                           double theRightMargin=0.05,
                            bool verticallyTight=true,
                            std::string theDir="");
 
@@ -143,17 +145,21 @@ void comparePionSpectra2_(){
     // std::vector<int> lRounds{6, 7};
 
     // create meaningfull id and directory to write into
-    std::string lID(Form("%d_%d_", TDatime().GetDate(), TDatime().GetTime()));
+    // std::string lID(Form("%d_%d_", TDatime().GetDate(), TDatime().GetTime()));
+    std::string lID(Form("%d_", TDatime().GetDate()));
     for (int i : lRounds){
         lID += Form("%d_", i);
     }
     std::string lDir(Form("pdf_root/%s", lID.data()));
     gSystem->mkdir(lDir.data(), true /*recursive*/);
 
+    float lLeftMargin = 0.3;
+    float lRightMargin = 0.02;
+
     // run one config
-    // doMultiRound(lMapBaseDirs, "Pi0", "10130e03", lMap_mesonCent_params, 
-    //              lRounds, 0.3/*theLeftMargin*/, lDir);
-    // return;
+    doMultiRound(lMapBaseDirs, "Eta", "10130e03", lMap_mesonCent_params, lRounds,
+                 lLeftMargin/*theLeftMargin*/, lRightMargin/*theRightMargin*/, lDir);
+    return;
 
     for (auto meson : std::vector<std::string>{"Pi0", "Eta"}){
         for (auto evtcut : std::vector<std::string>{"10130e03", "13530e03"}){
@@ -163,16 +169,24 @@ void comparePionSpectra2_(){
                          evtcut, 
                          lMap_mesonCent_params, 
                          lRounds, 
-                         0.3/*theLeftMargin*/,
+                         lLeftMargin/*theLeftMargin*/,
+                         lRightMargin/*theRightMargin*/,
                          lDir);
         }
     }
     return;
 
-
+/*
     int round = 1;
 
-    f`;
+    fitMesonAndWriteToFile(
+        lMapBaseDirs,
+        round,
+        "10130e03",
+        "Pi0",
+        "tcmDoublePow",
+        "FM",
+        "efficiency from MB + AS");
     return;
     fitMesonAndWriteToFile(
         lMapBaseDirs,
@@ -210,6 +224,7 @@ void comparePionSpectra2_(){
     //     "oHag",
     //     "EX0FM",
     //     "efficiency from MB + AS");
+*/
 }
 
 

@@ -37,10 +37,8 @@ void doMultiRound(std::map<int, std::string> const &theMapBaseDirs,
                   std::map<std::string, tVPars const&> const &theMap,
                   std::vector<int> const &theRounds,
                   double theLeftMargin/*=0.25*/,
+                  double theRightMargin/*=0.05*/,
                   std::string const &theDir/*=""*/){
-    
-    
-
     /* 
     the left column must have a different width to accomodate the y axis captions and 
     still have equally long x axis as the others*/
@@ -49,11 +47,13 @@ void doMultiRound(std::map<int, std::string> const &theMapBaseDirs,
     double w1 = 1./denom;
     double wi = (1.-theLeftMargin)/denom;
 
+    size_t lColumWidth = 200; // pixels
+
     // the master canvas
     std::string lNameC(Form("lCMultiRound_%s_%s", theMeson.data(), theCent.data()));
-    auto &lCM = *new TCanvas(lNameC.data(), lNameC.data(), nCols*200, 1000);
+    auto &lCM = *new TCanvas(lNameC.data(), lNameC.data(), nCols*lColumWidth, 1000);
     lCM.SetLeftMargin(0.0);
-    lCM.SetRightMargin(0.00);
+    lCM.SetRightMargin(0.0);
     lCM.SetTopMargin(0.00);
     lCM.SetBottomMargin(0.0);
 
@@ -66,17 +66,16 @@ void doMultiRound(std::map<int, std::string> const &theMapBaseDirs,
         double boarder = w1 + (i-1)*wi;
         TPad* p = new TPad(Form("%s_subpad_%d", lNameC.data(), i), Form("pad_%d", i), lastBoarder, 0., boarder, 1.);
         setMarginsToZero(*p);
-        if (i==nCols){ p->SetRightMargin(0.03); }
+        // if (i==nCols){ p->SetRightMargin(0.1); }
         p->Draw();
         lPads.push_back(p);
         lastBoarder = boarder;
-        
     }
     
     std::string lKey = theMeson + "_" + theCent;
     tVPars const &lVector = theMap.at(lKey);
-    for (size_t iPos = 0; iPos < theRounds.size(); ++iPos){    
-        
+    for (size_t iPos = 0; iPos < nCols; ++iPos){    
+        bool isLast = iPos == nCols-1;
         int round = theRounds[iPos];
         TCanvas* cNx1_i = 
             fitMesonAndWriteToFile(
@@ -87,8 +86,9 @@ void doMultiRound(std::map<int, std::string> const &theMapBaseDirs,
                 lVector[round].fitFunc.data(),
                 lVector[round].fitOpts.data(),
                 lVector[round].tag.data(),
-                3.,
-                iPos ? 0. : theLeftMargin /*theLeftMargin*/,
+                lColumWidth,
+                !iPos  ? theLeftMargin : 0 /*theLeftMargin*/,
+                isLast ? theRightMargin : 0. /*theRightMargin*/,
                 true /*verticallyTight*/,
                 theDir);
 
@@ -111,8 +111,9 @@ TCanvas*
                            const char* fitFunction, 
                            const char* fitOption, 
                            const char* mcTag, 
-                           float yMaxRatio/*=3.*/,
-                           double theLeftMargin/*=0.*/,
+                           size_t thePlotWidth,
+                           double theLeftMargin/*=0.25*/,
+                           double theRightMargin/*=0.05*/,
                            bool verticallyTight/*=true*/,
                            std::string theDir/*=""*/){
 
@@ -288,53 +289,74 @@ TCanvas*
     // graphYieldData->Fit(fitDataYield, fitOption, "", 0.6, maxPtPlot);
     
     // 3) ========================= plotting =============================================
-    TCanvas* cOneIt = new TCanvas(Form("canvas_%s_%i", fitDataYield->GetName(), round), 
-                              Form("canvas_%s_%i", fitDataYield->GetName(), round), 
-                              300, 1000);
     float lLegendTextSize = 0.08;
+    size_t lNrows = 5;
+
+    float lXlabelSize = 0.1;
+    float lXtitleSize = 0.1;
     
+    float lYlabelSize = 0.1;
+    float lYtitleSize = 0.08;
+    
+    float ratio_yTitleOffsets = 1.3;
+
+    bool isFirstCol = theLeftMargin;
+      
     gStyle->SetOptTitle(0); // disables histo titles as title on subpads
     gStyle->SetOptStat(0); // 
-    cOneIt->SetBottomMargin(0.);
-    cOneIt->SetRightMargin(0.);
-    cOneIt->SetLeftMargin(0.);
-    cOneIt->SetTopMargin(0.);
 
-    cOneIt->Divide(1, 5, 0., verticallyTight ? 0. : 0.1);
 
-    cOneIt->cd(1);
-    auto* pad1 = (TPad*)gPad;
-    pad1->SetTopMargin(0.03);
-    pad1->SetLeftMargin(theLeftMargin);
-    pad1->SetLogx();
-    pad1->SetLogy();
+    TCanvas* cOneIt = new TCanvas(Form("canvas_%s_%i", fitDataYield->GetName(), round), 
+                              Form("canvas_%s_%i", fitDataYield->GetName(), round), 
+                              thePlotWidth, 1000);
 
+    cOneIt->SetMargin(0., 0., 0., 0.);    
+    cOneIt->Divide(1, lNrows, 0., verticallyTight ? 0. : 0.1);
+
+    auto getNextTab = [&](){
+        int newPadNo = gPad->GetNumber() + 1;
+        cOneIt->cd(newPadNo);
+        bool isTop = newPadNo==1;
+        bool isBottom = newPadNo==lNrows;
+        TVirtualPad &p = *gPad;
+        p.SetLogx();
+        if (isTop) { p.SetLogy(); }
+        p.SetMargin(theLeftMargin, theRightMargin, isBottom ? 0.3 : 0., isTop ? 0.03 : 0.);
+        p.SetTicks(2, 2); // tx=2 enables ticks on top and bottom; ty=2 enables ticks on left and right
+        return &p;
+    };
+
+    //////////////////////////////////////////////////////////////////////////////////
     // fit data and plot both together
-    // ============================= pad 1 ===================================================
-    float ratio_yTitleOffsets = 1.3;
-    float lYlableSize = 0.1;
+    cout << "============================= pad 1 ===========================================\n";
+    auto &pad1 = *getNextTab();    
     TH1F * histo1DSpectra;
     histo1DSpectra          = new TH1F("histo1DSpectra", "histo1DSpectra",1000, minPtPlot, maxPtPlot);
     SetStyleHistoTH1ForGraphs( 
         histo1DSpectra, 
         "#it{p}_{T} (GeV/#it{c})", 
         "#frac{1}{2#pi #it{N}_{ev}} #frac{d^{2}#it{N}}{#it{p}_{T}d#it{p}_{T}d#it{y}} (GeV/#it{c})^{-2}", 
-        0.03,  // xLableSize
-        0.04, // xTitleSize
-        lYlableSize,  // yLableSize
-        0.080, // yTitleSize
+        0.,  // xLableSize
+        0., // xTitleSize
+        isFirstCol ? lYlabelSize : 0.,  // yLableSize
+        isFirstCol ? lYtitleSize : 0., // yTitleSize
         0.83,  // xTitleOffset
         1.7);  // yTitleOffset
     
-    histo1DSpectra->GetYaxis()->SetRangeUser(1E-8, 5E3);
-    histo1DSpectra->GetYaxis()->CenterTitle(true);
+    if (isFirstCol){
+        histo1DSpectra->GetXaxis()->SetLabelOffset(-0.01);
+        histo1DSpectra->GetYaxis()->CenterTitle(true);
+        histo1DSpectra->GetYaxis()->SetLabelOffset(0.01);
+    }
+    
     histo1DSpectra->GetXaxis()->SetRangeUser(minPtPlot, maxPtPlot);
-    histo1DSpectra->GetXaxis()->SetLabelOffset(-0.01);
-    histo1DSpectra->GetYaxis()->SetLabelOffset(0.01);
+    histo1DSpectra->GetYaxis()->SetRangeUser(1E-8, 5E3);
     histo1DSpectra->DrawCopy();
 
+    float lLegendNDC_x1 = (round==3) ? 0.51 : 0.61;
+
     auto xnew = [theLeftMargin](float xold){return theLeftMargin + (1.-theLeftMargin)*xold;};
-    auto legend_pad1 = new TLegend(xnew((round==3) ? 0.51 : 0.66), 0.51, xnew(0.98), .96);
+    auto legend_pad1 = new TLegend(xnew(lLegendNDC_x1), 0.51, xnew(0.98), .96);
     legend_pad1->SetBorderSize(0);
     legend_pad1->SetTextSize(lLegendTextSize);
             
@@ -414,20 +436,17 @@ TCanvas*
     pav->Draw();
 
     //////////////////////////////////////////////////////////////////////////
-    cout << "==================== PAD 2 ===================================\n";
     // current spectra / last iteration fit
-    cOneIt->cd(2);
-    auto* pad2 = (TPad*)gPad;
-    pad2->SetLeftMargin(theLeftMargin);
-    pad2->SetLogx();
+    cout << "==================== PAD 2 ===================================\n";
+    auto &pad2 = *getNextTab();
 
-    TH1F * histo1DRatio;
+    TH1F *histo1DRatio;
     histo1DRatio          = new TH1F("histo1DRatio", "histo1DRatio",1000, minPtPlot, maxPtPlot);
     SetStyleHistoTH1ForGraphs( histo1DRatio, "#it{p}_{T} (GeV/#it{c})", "This MC over last Fit", 
-        0.1,  // xLableSize
-        0.075, // xTitleSize
-        lYlableSize,  // yLableSize
-        0.075, // yTitleSize
+        0.,  // xLableSize
+        0., // xTitleSize
+        isFirstCol ? lYlabelSize : 0.,  // yLableSize
+        isFirstCol ? lYtitleSize : 0., // yTitleSize
         1.4,  // xTitleOffset
         ratio_yTitleOffsets);  // yTitleOffset
     
@@ -469,11 +488,7 @@ TCanvas*
     //////////////////////////////////////////////////////////////////////////
     // compare this effi to previous effis
     cout << "==================== PAD 3 ===================================\n";
-    cOneIt->cd(3);
-    auto* pad3 = (TPad*)gPad;   
-    pad3->SetLeftMargin(theLeftMargin);
-    pad3->SetLogx();
-    pad3->SetBottomMargin(0.);
+    auto &pad3 = *getNextTab();
 
     histo1DRatio->GetYaxis()->SetTitle("this over last efficiency");
     histo1DRatio->DrawCopy();
@@ -501,10 +516,8 @@ TCanvas*
     //////////////////////////////////////////////////////////////////////////
     // show quality of fit
     cout << "==================== PAD 4 ===================================\n";
-    cOneIt->cd(4);
-    auto* pad4 = (TPad*)gPad;
-    pad4->SetLeftMargin(theLeftMargin);
-    pad4->SetLogx();
+
+    auto &pad4 = *getNextTab();
     histo1DRatio->GetYaxis()->SetTitle("this Data over its Fit");
     histo1DRatio->GetYaxis()->SetRangeUser(lYmin,lYmax);
     histo1DRatio->DrawCopy();
@@ -522,16 +535,13 @@ TCanvas*
     leg4->Draw();
     DrawGammaLines(minPtPlot, maxPtPlot ,1., 1., 1, kBlack, 2);
 
-
+    //////////////////////////////////////////////////////////////////////////
     // ratio of this weighted MCs over this data. They differ only as much as this over last true efficiency
     cout << "==================== PAD 5 ===================================\n";
-    cOneIt->cd(5);
-    auto* pad5 = (TPad*)gPad;
-    pad5->SetLeftMargin(theLeftMargin);
-    pad5->SetLogx();
-    pad5->SetTopMargin(0.);
-    pad5->SetBottomMargin(0.25);
-    
+    auto &pad5 = *getNextTab();
+    histo1DRatio->GetXaxis()->SetLabelSize(lXlabelSize);
+    histo1DRatio->GetXaxis()->SetTitleSize(lXtitleSize);
+
     histo1DRatio->GetYaxis()->SetRangeUser(lYmin,lYmax);        
     histo1DRatio->GetYaxis()->SetTitle("MC over Data");
     histo1DRatio->DrawCopy();
