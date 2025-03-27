@@ -134,7 +134,7 @@ TCanvas*
     bool isPremerged = (round==2 || round==3);
 
     auto giveFilename = [&](int round, std::string dataMC, std::string fileSuff) {
-        std::string lMCconfig(Form("MB-%s_separate", isPremerged ? "bothASpremerged" : "AS"));
+        std::string lMCconfig(Form("MB-%s_separate", (round==2 || round==3) ? "bothASpremerged" : "AS"));
         return Form("%s/%s/mesons/%s/PbPb_5.02TeV/%s_%s_GammaConvV1Correction%s_%s.root", 
                     theMapBaseDirs.at(round).data(), lMCconfig.data(), lCutNo.data(), 
                     meson.data(), dataMC.data(), fileSuff.data(), lCutNo.data());
@@ -484,10 +484,13 @@ TCanvas*
     histo1DRatio->DrawCopy();
     
     if (round) {
+        printf("SFS round = %d\n", round);
         // draw ratio of effi/effiLast
         TH1 &lHistoTrueEffi     = *(TH1*)utils_files_strings::GetObjectFromPathInFile(filenameData.data(), "TrueMesonEffiPt");
-        TH1 *lHistoTrueEffiLast = round ? (TH1*)utils_files_strings::GetObjectFromPathInFile(filenameData_last.data(), "TrueMesonEffiPt")
-                                        : static_cast<TH1*>(nullptr);
+        TH1 *lHistoTrueEffiLast = round 
+            ? (TH1*)utils_files_strings::GetObjectFromPathInFile(filenameData_last.data(), 
+                                                                 "TrueMesonEffiPt")
+            : static_cast<TH1*>(nullptr);
 
         // utils_TH1::PrintBinsWithErrors(lHistoTrueEffi);    
         std::pair<TH1&, TH1&> &lBinningsAligned = 
