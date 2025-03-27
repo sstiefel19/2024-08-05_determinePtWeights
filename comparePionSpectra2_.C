@@ -121,7 +121,7 @@ TCanvas*
     // 1) retrieve all filenames, histos, and information
 
     bool isPi0 = meson == "Pi0";
-    cout << meson << " " << isPi0 << endl;
+    bool isCentral = eventCutNo.substr(0, 3) == "101";
 
     Double_t minPtPlot  = isPi0 ?  0.3 : .9;
     Double_t maxPtPlot  = isPi0 ? 30.0 : 14.0;
@@ -131,40 +131,33 @@ TCanvas*
 
     std::string lPhotMesCutNo("0d200009ab770c00amd0404000_0152101500000000");
     std::string lCutNo(Form("%s_%s", eventCutNo.data(), lPhotMesCutNo.data()));
+    bool isPremerged = (round==2 || round==3);
 
     auto giveFilename = [&](int round, std::string dataMC, std::string fileSuff) {
-        std::string lMCconfig(Form("MB-%s_separate", (round==2 || round==3) ? "bothASpremerged" : "AS"));
+        std::string lMCconfig(Form("MB-%s_separate", isPremerged ? "bothASpremerged" : "AS"));
         return Form("%s/%s/mesons/%s/PbPb_5.02TeV/%s_%s_GammaConvV1Correction%s_%s.root", 
-                    theMapBaseDirs.at(round).data(), lMCconfig.data(), lCutNo.data(), meson.data(), dataMC.data(), fileSuff.data(), lCutNo.data());
+                    theMapBaseDirs.at(round).data(), lMCconfig.data(), lCutNo.data(), 
+                    meson.data(), dataMC.data(), fileSuff.data(), lCutNo.data());
     };
-
 
     std::string filenameData(giveFilename(round, "data", ""));
     std::string filenameData_last(giveFilename(std::max(0, round-1), "data", ""));
-    std::string filenameAS(giveFilename(round,   "MC", "HistosAddSig"));
-    std::string filenameAS2(giveFilename(round,  "MC", "HistosAddSig2"));
 
-    
-    TH1D* lHistoData               = (TH1D*)utils_files_strings::GetObjectFromPathInFile(filenameData.data(), "CorrectedYieldTrueEff");
-    TH1D* lHistoMBonly_dataBin_WW  = (TH1D*)utils_files_strings::GetObjectFromPathInFile(filenameData.data(), "MCYield_Meson");
-    TH1D* lHistoMBonly_oldBin_WW   = (TH1D*)utils_files_strings::GetObjectFromPathInFile(filenameData.data(), "MCYield_Meson_oldBin");
-    TH1D* lHistoMBonly_oldBin_WOW  = (TH1D*)utils_files_strings::GetObjectFromPathInFile(filenameData.data(), "MCYield_Meson_oldBinWOWeights");
-    
-    // addedSig (high pt or merged)
-    TH1D* lHistoMC_ASh_oldBin_WW_fd  = round ? (TH1D*)utils_files_strings::GetObjectFromPathInFile(filenameData.data(), "MCYield_Meson_oldBin_AddedSig") : nullptr;
-    TH1D* lHistoMC_ASh_oldBin_WOW_fd  = round ? (TH1D*)utils_files_strings::GetObjectFromPathInFile(filenameData.data(), "MCYield_Meson_oldBinWOWeights_AddedSig") : nullptr;
-            
+    TH1D* lHistoData = (TH1D*)utils_files_strings::GetObjectFromPathInFile(
+        filenameData.data(), 
+        "CorrectedYieldTrueEff");
+                
     // get counts directly from trainfile and transform to inv yield myself
     float lMeson2GammaBR = isPi0 ? 0.98798 : 0.3931;
     std::string eventCutNoMC(eventCutNo);
     eventCutNoMC.replace(5,2,"05");
     std::string eventCutNoMCAdd(eventCutNoMC);
     eventCutNoMCAdd.replace(6,1,"2");
-    bool isCentral = eventCutNo.substr(0, 3) == "101";
 
     // theMBAS = one of  {"mb", "as", "as2"}
     // returns nullptr for invalid round, theMBAS combinations. 
-    auto computeInvariantMCYieldFromTrainFile = [&](std::string theMBAS, std::string const &theWoWeights=""){
+    auto computeInvariantMCYieldFromTrainFile = 
+        [&](std::string theMBAS, std::string const &theWoWeights=""){
         bool lIsMB = theMBAS=="mb";
         bool lIsAS2 = !lIsMB && (theMBAS=="as2");
 
@@ -193,8 +186,6 @@ TCanvas*
             return static_cast<TH1*>(nullptr);
         }
 
-
-        bool isPremerged = (round>1) && (round<4);
         std::string asTag(isPremerged ? "AS(l+h)" : lIsAS2 ? "ASh" : "ASl");
         std::string weightsTag(theWoWeights.size() ? "WOW" : "WW");
         std::string mcTag(Form("%s", lIsMB ? "MB" : asTag.data()));
@@ -224,17 +215,16 @@ TCanvas*
             lFname = Form("GammaConvV1_%s_%s-merged.root", lConfig.data(), abac.data());
         }
         if (!lIsMB && round==1) {
-            lFname = Form("GammaConvV1_%s_%s.root", lConfig.data(), isPi0 ? "pi0" : "eta");
+            lFname = Form("GammaConvV1_%s_%s.root", lConfig.data(), meson.data());
         }
 
         std::string lMainDir(Form("GammaConvV1_%s/", lConfig.data()));
         std::string lEventCutNo(lIsMB ? eventCutNoMC : eventCutNoMCAdd);
-
         GCo lGCo(Form("%s/trains/%s/%s",
                     theMapBaseDirs.at(round).data(), lTrainSubDir.data(),lFname.data()),
-                    lMainDir,
-                    lEventCutNo,
-                    lPhotMesCutNo);   
+                lMainDir,
+                lEventCutNo,
+                lPhotMesCutNo);   
         
         float nEvents = ((TH1*)lGCo.GetFromESD("NEvents"))->GetBinContent(1); 
         TH1* lHistoMesonsInRap= (TH1*)lGCo.GetFromMC(Form("MC_%s%s_Pt", meson.data(), theWoWeights.data()));
@@ -243,7 +233,6 @@ TCanvas*
             *utils_TH1::DivideTH1ByBinWidths(*lHistoMesonsInRap, "divW", nullptr, nullptr),
             "inv", lNewHistoName.data(), lHistoTitleForLeg.data(), 1./(nEvents*1.6*lMeson2GammaBR)) // 1.6 = deltaY
         : nullptr;
-        
         return hInvYield_WW;
     };
 
@@ -286,12 +275,11 @@ TCanvas*
     TF1* fitDataYield = FitObject(fitFunction, fitName.data(), meson.data(), NULL, minPtPlot, maxPtPlot);            
     TGraphAsymmErrors* graphYieldData = new TGraphAsymmErrors(lHistoData);
     graphYieldData->Fit(fitDataYield, fitOption, "", minPtPlot, maxPtPlot);
-    // graphYieldData->Fit(fitDataYield, fitOption, "", 0.6, maxPtPlot);
     
     // 3) ========================= plotting =============================================
-    float lLegendTextSize = 0.08;
+    bool isFirstCol = theLeftMargin;
     size_t lNrows = 5;
-
+    
     float lXlabelSize = 0.1;
     float lXtitleSize = 0.1;
     float lXtitleOffset = 1.2;
@@ -299,28 +287,23 @@ TCanvas*
     float lYlabelSize = 0.1;
     float lYtitleSize = 0.08;
     float lYtitleOffset = 1.7;
-    
-    
+    float lRatioYtitleOffsets = 1.3;
 
-    
-    float ratio_yTitleOffsets = 1.3;
+    float lLegendTextSize = 0.08;
 
-    bool isFirstCol = theLeftMargin;
-      
     gStyle->SetOptTitle(0); // disables histo titles as title on subpads
     gStyle->SetOptStat(0); // 
 
+    TCanvas &cOneIt = *new TCanvas(Form("canvas_%s_%i", fitDataYield->GetName(), round), 
+                                  Form("canvas_%s_%i", fitDataYield->GetName(), round), 
+                                  thePlotWidth, 1000);
 
-    TCanvas* cOneIt = new TCanvas(Form("canvas_%s_%i", fitDataYield->GetName(), round), 
-                              Form("canvas_%s_%i", fitDataYield->GetName(), round), 
-                              thePlotWidth, 1000);
-
-    cOneIt->SetMargin(0., 0., 0., 0.);    
-    cOneIt->Divide(1, lNrows, 0., verticallyTight ? 0. : 0.1);
+    cOneIt.SetMargin(0., 0., 0., 0.);    
+    cOneIt.Divide(1, lNrows, 0., verticallyTight ? 0. : 0.1);
 
     auto getNextTab = [&](){
         int newPadNo = gPad->GetNumber() + 1;
-        cOneIt->cd(newPadNo);
+        cOneIt.cd(newPadNo);
         bool isTop = newPadNo==1;
         bool isBottom = newPadNo==lNrows;
         TVirtualPad &p = *gPad;
@@ -456,13 +439,12 @@ TCanvas*
         isFirstCol ? lYlabelSize : 0.,  // yLableSize
         isFirstCol ? lYtitleSize : 0., // yTitleSize
         0.,  // xTitleOffset
-        ratio_yTitleOffsets);  // yTitleOffset
+        lRatioYtitleOffsets);  // yTitleOffset
     
     histo1DRatio->GetXaxis()->SetLabelOffset(-0.01);
     histo1DRatio->GetXaxis()->SetRangeUser(minPtPlot, maxPtPlot);
     histo1DRatio->GetYaxis()->SetLabelOffset(0.01);
     histo1DRatio->GetYaxis()->CenterTitle(true);
-    // histo1DRatio->GetYaxis()->SetRangeUser(gPad->GetUymin(), gPad->GetUymax());
     histo1DRatio->GetYaxis()->SetRangeUser(0.9, 1.1);        
     histo1DRatio->DrawCopy();
 
@@ -591,27 +573,17 @@ TCanvas*
     cout << "================= saving to file and pdfs ========================\n";
     std::string lSinglesDir(theDir + "/singles");
     gSystem->mkdir(lSinglesDir.data(), true /*recursive*/);
-    cOneIt->SaveAs(Form("%s/%s_%s_it%d.pdf", lSinglesDir.data(), eventCutNo.data(), meson.data(), round));
+    cOneIt.SaveAs(Form("%s/%s_%s_it%d.pdf", lSinglesDir.data(), eventCutNo.data(), meson.data(), round));
     
     // save to file
-    TFile* hfile = new TFile(Form("%s/MCSpectraInputPbPb_Stephan_it%d.root", theDir.data(), round),"UPDATE");
-
-    // MB
-    lHistoMBonly_oldBin_WOW->Write(Form("%s_LHC20e3a_5TeV_%s", meson.data(), eventCutNoMC.data()));
-    if (eventCutNoMC=="10130053"){
-        lHistoMBonly_oldBin_WOW->Write(Form("%s_LHC20e3b_5TeV_%s", meson.data(), eventCutNoMC.data()));
-    }
-    if (eventCutNoMC=="13530053"){
-        lHistoMBonly_oldBin_WOW->Write(Form("%s_LHC20e3c_5TeV_%s", meson.data(), eventCutNoMC.data()));
-    }
-    
+    TFile* hfile = new TFile(Form("%s/MCSpectraInputPbPb_Stephan_it%d.root", theDir.data(), round),"UPDATE");    
     fitDataYield->Write();
-    cOneIt->Write();
+    cOneIt.Write();
     hfile->Write();
     hfile->Close();
     hfile->Delete();
 
-    return cOneIt;
+    return &cOneIt;
 }
 
 //============================================================================
