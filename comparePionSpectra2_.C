@@ -36,17 +36,10 @@ void doMultiRound(std::map<int, std::string> const &theMapBaseDirs,
                   std::string theCent,
                   std::map<std::string, tVPars const&> const &theMap,
                   std::vector<int> const &theRounds,
-                  double theLeftMargin=0.25)
-{
-    std::string lNameC(Form("lCMultiRound_%s_%s", theMeson.data(), theCent.data()));
-
+                  double theLeftMargin/*=0.25*/,
+                  std::string const &theDir/*=""*/){
     
-    // the master canvas
-    auto &lCM = *new TCanvas(lNameC.data(), lNameC.data(), 1000, 1000);
-    lCM.SetLeftMargin(0.0);
-    lCM.SetRightMargin(0.0);
-    lCM.SetTopMargin(0.0);
-    lCM.SetBottomMargin(0.0);
+    
 
     /* 
     the left column must have a different width to accomodate the y axis captions and 
@@ -56,6 +49,15 @@ void doMultiRound(std::map<int, std::string> const &theMapBaseDirs,
     double w1 = 1./denom;
     double wi = (1.-theLeftMargin)/denom;
 
+    // the master canvas
+    std::string lNameC(Form("lCMultiRound_%s_%s", theMeson.data(), theCent.data()));
+    auto &lCM = *new TCanvas(lNameC.data(), lNameC.data(), nCols*200, 1000);
+    lCM.SetLeftMargin(0.0);
+    lCM.SetRightMargin(0.00);
+    lCM.SetTopMargin(0.00);
+    lCM.SetBottomMargin(0.0);
+
+
     // create n parallel columns in which the canvas from fitMesonAndWriteToFile will be drawn
     double lastBoarder = 0.;
     std::vector<TPad*> lPads;
@@ -64,19 +66,13 @@ void doMultiRound(std::map<int, std::string> const &theMapBaseDirs,
         double boarder = w1 + (i-1)*wi;
         TPad* p = new TPad(Form("%s_subpad_%d", lNameC.data(), i), Form("pad_%d", i), lastBoarder, 0., boarder, 1.);
         setMarginsToZero(*p);
+        if (i==nCols){ p->SetRightMargin(0.03); }
         p->Draw();
         lPads.push_back(p);
         lastBoarder = boarder;
+        
     }
     
-    // create meaningfull id and directory to write into
-    std::string lID("");
-    for (int i : theRounds){
-        lID += Form("%d_", i);
-    }
-    std::string lDir(Form("pdf_root/%s", lID.data()));
-    gSystem->mkdir(lDir.data(), true /*recursive*/);
-
     std::string lKey = theMeson + "_" + theCent;
     tVPars const &lVector = theMap.at(lKey);
     for (size_t iPos = 0; iPos < theRounds.size(); ++iPos){    
@@ -94,7 +90,7 @@ void doMultiRound(std::map<int, std::string> const &theMapBaseDirs,
                 3.,
                 iPos ? 0. : theLeftMargin /*theLeftMargin*/,
                 true /*verticallyTight*/,
-                lDir);
+                theDir);
 
         // prepare for verticallyTight layout
         // squeezeAndPrepare_nSubPads(*cNx1_i, 5);
@@ -102,7 +98,7 @@ void doMultiRound(std::map<int, std::string> const &theMapBaseDirs,
         cNx1_i->DrawClonePad();
     }
 
-    lCM.SaveAs(Form("%s/%s.pdf", lDir.data(), lNameC.data()));
+    lCM.SaveAs(Form("%s/%s.pdf", theDir.data(), lNameC.data()));
     lCM.SaveAs(Form("~/repos_cloud/thesis_writing/figures/%s.pdf", lNameC.data()));
 }
 
@@ -128,6 +124,9 @@ TCanvas*
 
     Double_t minPtPlot  = isPi0 ?  0.3 : .9;
     Double_t maxPtPlot  = isPi0 ? 30.0 : 14.0;
+
+    Double_t lYmin{isPi0 ? 0.7 : 0.};
+    Double_t lYmax{isPi0 ? 1.3 : 2.5};
 
     std::string lPhotMesCutNo("0d200009ab770c00amd0404000_0152101500000000");
     std::string lCutNo(Form("%s_%s", eventCutNo.data(), lPhotMesCutNo.data()));
@@ -166,7 +165,7 @@ TCanvas*
     // returns nullptr for invalid round, theMBAS combinations. 
     auto computeInvariantMCYieldFromTrainFile = [&](std::string theMBAS, std::string const &theWoWeights=""){
         bool lIsMB = theMBAS=="mb";
-        bool lIsAS2 = theMBAS=="as2";
+        bool lIsAS2 = !lIsMB && (theMBAS=="as2");
 
         // default trainconfigs
         std::string lConfig(lIsMB 
@@ -195,9 +194,11 @@ TCanvas*
 
 
         bool isPremerged = (round>1) && (round<4);
-        std::string asTag(isPremerged ? "asl+ash preMerged" : lIsAS2 ? "ash" : "asl");
+        std::string asTag(isPremerged ? "AS(l+h)" : lIsAS2 ? "ASh" : "ASl");
         std::string weightsTag(theWoWeights.size() ? "WOW" : "WW");
-        std::string lNewHistoName(Form("MC_%s_%s", lIsMB ? "mb" : asTag.data(), weightsTag.data()));
+        std::string mcTag(Form("%s", lIsMB ? "MB" : asTag.data()));
+        std::string lNewHistoName(Form("MC_%s_%s", mcTag.data(), weightsTag.data()));
+        std::string lHistoTitleForLeg(Form("MC %s", mcTag.data()));
         std::string abac(isCentral ? "ab" : "ac");
                
         std::string lTrainSubDir(lIsMB 
@@ -239,7 +240,7 @@ TCanvas*
         TH1* hInvYield_WW = lHistoMesonsInRap 
         ? utils_computational::TranformD2DPtDYYieldToInvariantYield(
             *utils_TH1::DivideTH1ByBinWidths(*lHistoMesonsInRap, "divW", nullptr, nullptr),
-            "inv", lNewHistoName.data(), nullptr, 1./(nEvents*1.6*lMeson2GammaBR)) // 1.6 = deltaY
+            "inv", lNewHistoName.data(), lHistoTitleForLeg.data(), 1./(nEvents*1.6*lMeson2GammaBR)) // 1.6 = deltaY
         : nullptr;
         
         return hInvYield_WW;
@@ -266,59 +267,6 @@ TCanvas*
             computeAndInsert(iWeightsQuali);
         }
     }
-    //=======done computing all mc inv yields from train files =========
-    
-    // alternatively get from AS file
-    //*
-    /*
-    std::map<std::string, std::string> mMyname_ABname{
-        {"ldNdPtMC_MC_WW","MC_Meson_genPt"},
-        {"ldNdPtMC_MC_WOW","MC_Meson_genPt_properBinning_WOWeights"},
-        {"ldNdPtMC_MC_WW_oldBin","MC_Meson_genPt_oldBin"}, // find this in ab
-        {"ldNdPtMC_MC_WOW_oldBin","MC_Meson_genPt_WOWeights"}
-    };
-
-    // AS first
-    // need number of events
-    TH1* lHistoNEventsASh = round 
-        ? (TH1*)utils_files_strings::GetObjectFromPathInFile(filenameAS.data(), "NEvents") 
-        : nullptr;
-    float lNEventsASh = lHistoNEventsASh ? lHistoNEventsASh->GetBinContent(1) : 0.;
-    printf("SFS lNEventsASh = %f\n", lNEventsASh);
-    std::map<std::string, TH1*> mAS_histos_inv; // no h because for round2 and round3 both mcs are merged
-    if (lNEventsASh){
-        for (auto const &p : mMyname_ABname){
-            TH1D* lHisto = (TH1D*)utils_files_strings::GetObjectFromPathInFile(filenameAS.data(), p.second.data());
-            mAS_histos_inv[p.first] = lHisto 
-                ? utils_computational::TranformD2DPtDYYieldToInvariantYield(
-                    *lHisto, "inv", nullptr, nullptr, 1./(lNEventsASh*1.6*lMeson2GammaBR)) 
-                : nullptr;
-        }
-    }
-    TH1* lHistoMC_ASh_WW =  mAS_histos_inv["ldNdPtMC_MC_WW"];
-    TH1* lHistoMC_ASh_WOW =  mAS_histos_inv["ldNdPtMC_MC_WOW"];
-    
-    TH1* lHistoMC_ASh_WW_oldBin =  mAS_histos_inv["ldNdPtMC_MC_WW_oldBin"];
-    TH1* lHistoMC_ASh_WOW_oldBin =  mAS_histos_inv["ldNdPtMC_MC_WOW_oldBin"];
-
-    
-    // AS2 second
-    bool AS2 = (round >= 400);
-    TH1* lHistoNEventsASl = AS2 ? (TH1*)utils_files_strings::GetObjectFromPathInFile(filenameAS2.data(), "NEvents") : nullptr;
-    float lNEventsASl = lHistoNEventsASl ? lHistoNEventsASl->GetBinContent(1) : 0.;
-    std::map<std::string, TH1*> mASl_histos_inv;
-    if (AS2){
-        for (auto const &p : mMyname_ABname){
-            TH1D* lHisto = (TH1D*)utils_files_strings::GetObjectFromPathInFile(filenameAS2.data(), p.second.data());
-            mASl_histos_inv[p.first] = lHisto ? utils_computational::TranformD2DPtDYYieldToInvariantYield(*lHisto, "inv", nullptr, nullptr, 1./(lNEventsASl*1.6)) : nullptr;
-        }
-    }
-    TH1* lHistoMC_ASl_WW = AS2 ? mASl_histos_inv["ldNdPtMC_MC_WW"] : nullptr;
-    TH1* lHistoMC_ASl_WOW = AS2 ? mASl_histos_inv["ldNdPtMC_MC_WOW"] : nullptr; 
-    TH1* lHistoMC_ASl_WW_oldBin = AS2 ? mASl_histos_inv["ldNdPtMC_MC_WW_oldBin"] : nullptr;
-    TH1* lHistoMC_ASl_WOW_oldBin = AS2 ? mASl_histos_inv["ldNdPtMC_MC_WOW_oldBin"] : nullptr;
-    */
-
     
     // get fit and histo from last iteration
     std::string fitNameInFile(Form("%s_Data_5TeV_%s0", meson.data(), eventCutNo.substr(0,5).data()));
@@ -343,6 +291,7 @@ TCanvas*
     TCanvas* cOneIt = new TCanvas(Form("canvas_%s_%i", fitDataYield->GetName(), round), 
                               Form("canvas_%s_%i", fitDataYield->GetName(), round), 
                               300, 1000);
+    float lLegendTextSize = 0.08;
     
     gStyle->SetOptTitle(0); // disables histo titles as title on subpads
     gStyle->SetOptStat(0); // 
@@ -355,6 +304,7 @@ TCanvas*
 
     cOneIt->cd(1);
     auto* pad1 = (TPad*)gPad;
+    pad1->SetTopMargin(0.03);
     pad1->SetLeftMargin(theLeftMargin);
     pad1->SetLogx();
     pad1->SetLogy();
@@ -384,24 +334,25 @@ TCanvas*
     histo1DSpectra->DrawCopy();
 
     auto xnew = [theLeftMargin](float xold){return theLeftMargin + (1.-theLeftMargin)*xold;};
-    auto legend_pad1 = new TLegend(xnew(0.6), 0.59, xnew(0.9), 0.86);
+    auto legend_pad1 = new TLegend(xnew((round==3) ? 0.51 : 0.66), 0.51, xnew(0.98), .96);
     legend_pad1->SetBorderSize(0);
+    legend_pad1->SetTextSize(lLegendTextSize);
             
+    // plot for all iterations
     lHistoData->SetTitle(Form("%s yields for %s", meson.data(), eventCutNo.data()));
     fitDataYield->SetRange(minPtPlot, maxPtPlot);
-    
-    // plot always
-    utils_plotting::DrawAndAdd(*lHistoData,              "same", colorData, 1.0, legend_pad1, "Data", "lep", .055, true, markerStyleData, 1.0);
-    // utils_plotting::DrawAndAdd(*lHistoMBonly_oldBin_WOW, "same", colorMCMB, 1.0, legend_pad1, "MC MB WoW", "lep", .055, true, markerStyleMCWOW, 1.0);
+    utils_plotting::DrawAndAdd(*lHistoData,"same", colorData, 1.0, legend_pad1, "Data", "lep", lLegendTextSize, true, markerStyleData, 1.0);
+    // keep this for reference
+    // utils_plotting::DrawAndAdd(*lHistoMBonly_oldBin_WOW, "same", colorMCMB, 1.0, legend_pad1, "MC MB WoW", "lep", lLegendTextSize, true, markerStyleMCWOW, 1.0);
     
     typedef std::pair<Color_t, Style_t> MPair;
     auto getColorAndMarkerForHisto = [](TH1 &h){
         TString hname(h.GetName());
-        Color_t lColor = hname.Contains("mb") 
+        Color_t lColor = hname.Contains("MB") 
             ? colorMCMB 
             : hname.Contains("+") 
-                ? kPink
-                : hname.Contains("asl")
+                ? kGreen
+                : hname.Contains("ASl")
                     ? kBlue
                     : kOrange; 
         Style_t lStyle = hname.Contains("WW") ? markerStyleMCWW : markerStyleMCWOW;
@@ -412,7 +363,8 @@ TCanvas*
             if (!ih) { continue; }
             TH1& h = *ih;
             MPair lPair = getColorAndMarkerForHisto(h);           
-            utils_plotting::DrawAndAdd(h, "same", lPair.first, 1.0, legend_pad1, h.GetName(), "lep", 0.055, true, lPair.second, 1.0);
+            bool ww = lPair.second==markerStyleMCWW;
+            utils_plotting::DrawAndAdd(h, "same", lPair.first, 1.0, ww ? legend_pad1 : nullptr, h.GetTitle(), "lep", lLegendTextSize, true, lPair.second, 1.0);
         }
     };
 
@@ -424,10 +376,11 @@ TCanvas*
         plotVector(vInvMCYields_ww);
     }
 
+    // move on to fits
     if (lastItFit){
-        utils_plotting::DrawAndAdd(*lastItFit, "same", kBlue, 3.0, legend_pad1, "last Fit data", "l", .055, true);
+        utils_plotting::DrawAndAdd(*lastItFit, "same", kBlue, 3.0, legend_pad1, "last Fit", "l", lLegendTextSize, true);
     }
-    utils_plotting::DrawAndAdd(*fitDataYield, "same", colorFit, 3.0, legend_pad1, "Fit data", "l", .055, true);
+    utils_plotting::DrawAndAdd(*fitDataYield, "same", colorFit, 3.0, legend_pad1, "Fit data", "l", lLegendTextSize, true);
     
     auto centString = [](std::string& evtCutNo){
         std::string& e = evtCutNo;
@@ -443,7 +396,7 @@ TCanvas*
     mesDec.append(" #rightarrow #gamma #gamma");
     
     // add text in plot
-    TPaveText* pav = new TPaveText(xnew(0.045), 0.10, xnew(0.39), 0.48, "NDC"); // x1,y1,x2,y2
+    TPaveText* pav = new TPaveText(xnew(0.045), 0.01, xnew(0.39), 0.48, "NDC"); // x1,y1,x2,y2
     pav->AddText(Form("%s  %s", collisionSystem.Data(), centString(eventCutNo)));
     pav->AddText(mesDec.data());
     pav->AddText("");
@@ -453,7 +406,7 @@ TCanvas*
     pav->AddText(Form("fit function: %s", fitFunction));
     pav->AddText(mcTag);
     //~ ((TText*)pav->GetListOfLines()->Last())->SetTextAlign(22); // centered hor. and vert.
-    pav->SetTextSize(0.055);
+    pav->SetTextSize(lLegendTextSize);
     pav->SetBorderSize(0);
     pav->SetFillStyle(1001);
     pav->SetFillColor(kWhite);
@@ -482,7 +435,7 @@ TCanvas*
     histo1DRatio->GetXaxis()->SetRangeUser(minPtPlot, maxPtPlot);
     histo1DRatio->GetYaxis()->SetLabelOffset(0.01);
     histo1DRatio->GetYaxis()->CenterTitle(true);
-    histo1DRatio->GetYaxis()->SetRangeUser(gPad->GetUymin(), gPad->GetUymax());
+    // histo1DRatio->GetYaxis()->SetRangeUser(gPad->GetUymin(), gPad->GetUymax());
     histo1DRatio->GetYaxis()->SetRangeUser(0.9, 1.1);        
     histo1DRatio->DrawCopy();
 
@@ -506,7 +459,7 @@ TCanvas*
                     if (!histoMC) {continue;}
                     TH1* hHistoRatioToFit = CalculateHistoRatioToFit(histoMC, lastItFit, kTRUE);
                     hHistoRatioToFit->SetName(Form("%s_mover_%s", histoMC->GetName(), lastItFit->GetName()));
-                    utils_plotting::DrawAndAdd(*hHistoRatioToFit, "same", histoMC->GetLineColor(), 1.0, leg2, entry->GetLabel(), "lp", .055);
+                    utils_plotting::DrawAndAdd(*hHistoRatioToFit, "same", histoMC->GetLineColor(), 1.0, leg2, entry->GetLabel(), "lp", lLegendTextSize);
                 }
             }
         }
@@ -553,7 +506,7 @@ TCanvas*
     pad4->SetLeftMargin(theLeftMargin);
     pad4->SetLogx();
     histo1DRatio->GetYaxis()->SetTitle("this Data over its Fit");
-    histo1DRatio->GetYaxis()->SetRangeUser(0.7,1.3);
+    histo1DRatio->GetYaxis()->SetRangeUser(lYmin,lYmax);
     histo1DRatio->DrawCopy();
 
     // this fit over this data
@@ -563,7 +516,7 @@ TCanvas*
     hHistoRatioDataToFit->Draw("SAME");
 
     auto leg4 = new TLegend(xnew(0.16),0.6,xnew(0.44),0.86);
-    leg4->SetTextSize(0.05);
+    leg4->SetTextSize(lLegendTextSize);
     leg4->AddEntry(hHistoRatioDataToFit,"this data over this fit","lep");
     leg4->SetBorderSize(0);
     leg4->Draw();
@@ -579,7 +532,7 @@ TCanvas*
     pad5->SetTopMargin(0.);
     pad5->SetBottomMargin(0.25);
     
-    histo1DRatio->GetYaxis()->SetRangeUser(0.7, 1.3);        
+    histo1DRatio->GetYaxis()->SetRangeUser(lYmin,lYmax);        
     histo1DRatio->GetYaxis()->SetTitle("MC over Data");
     histo1DRatio->DrawCopy();
 
@@ -606,7 +559,7 @@ TCanvas*
                      histoMC_dataBin = *utils_TH1::RebinDensityHistogram(*histoMC, *lHistoData, "reb");
                  }*/
                 TH1* ratioHist = utils_TH1::DivideTH1ByTH1(histoMC_dataBin, *lHistoData, "", Form("over_%s", lHistoData->GetName()));
-                utils_plotting::DrawAndAdd(*ratioHist, "same", histoMC->GetLineColor(), 1.0, leg5, entry->GetLabel(), "lp", .055);
+                utils_plotting::DrawAndAdd(*ratioHist, "same", histoMC->GetLineColor(), 1.0, leg5, entry->GetLabel(), "lp", lLegendTextSize);
             }
         }
     }    
