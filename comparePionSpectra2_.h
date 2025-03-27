@@ -157,9 +157,9 @@ void comparePionSpectra2_(){
     float lRightMargin = 0.02;
 
     // run one config
-    doMultiRound(lMapBaseDirs, "Eta", "10130e03", lMap_mesonCent_params, lRounds,
-                 lLeftMargin/*theLeftMargin*/, lRightMargin/*theRightMargin*/, lDir);
-    return;
+    // doMultiRound(lMapBaseDirs, "Eta", "10130e03", lMap_mesonCent_params, lRounds,
+    //              lLeftMargin/*theLeftMargin*/, lRightMargin/*theRightMargin*/, lDir);
+    // return;
 
     for (auto meson : std::vector<std::string>{"Pi0", "Eta"}){
         for (auto evtcut : std::vector<std::string>{"10130e03", "13530e03"}){

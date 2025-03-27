@@ -294,9 +294,14 @@ TCanvas*
 
     float lXlabelSize = 0.1;
     float lXtitleSize = 0.1;
-    
+    float lXtitleOffset = 1.2;
+
     float lYlabelSize = 0.1;
     float lYtitleSize = 0.08;
+    float lYtitleOffset = 1.7;
+    
+    
+
     
     float ratio_yTitleOffsets = 1.3;
 
@@ -340,8 +345,8 @@ TCanvas*
         0., // xTitleSize
         isFirstCol ? lYlabelSize : 0.,  // yLableSize
         isFirstCol ? lYtitleSize : 0., // yTitleSize
-        0.83,  // xTitleOffset
-        1.7);  // yTitleOffset
+        0.,  // xTitleOffset
+        lYtitleOffset);  // yTitleOffset
     
     if (isFirstCol){
         histo1DSpectra->GetXaxis()->SetLabelOffset(-0.01);
@@ -442,12 +447,15 @@ TCanvas*
 
     TH1F *histo1DRatio;
     histo1DRatio          = new TH1F("histo1DRatio", "histo1DRatio",1000, minPtPlot, maxPtPlot);
-    SetStyleHistoTH1ForGraphs( histo1DRatio, "#it{p}_{T} (GeV/#it{c})", "This MC over last Fit", 
+    SetStyleHistoTH1ForGraphs(
+        histo1DRatio, 
+        "#it{p}_{T} (GeV/#it{c})", 
+        "This MC over last Fit", 
         0.,  // xLableSize
         0., // xTitleSize
         isFirstCol ? lYlabelSize : 0.,  // yLableSize
         isFirstCol ? lYtitleSize : 0., // yTitleSize
-        1.4,  // xTitleOffset
+        0.,  // xTitleOffset
         ratio_yTitleOffsets);  // yTitleOffset
     
     histo1DRatio->GetXaxis()->SetLabelOffset(-0.01);
@@ -539,9 +547,14 @@ TCanvas*
     // ratio of this weighted MCs over this data. They differ only as much as this over last true efficiency
     cout << "==================== PAD 5 ===================================\n";
     auto &pad5 = *getNextTab();
+    pad5.SetTicks(1,2);
+    // // Hide labels on the top X-axis
+    // histo1DRatio->GetXaxis()->SetLabelOffset(999); // Move top labels far away to effectively hide them
+
     histo1DRatio->GetXaxis()->SetLabelSize(lXlabelSize);
     histo1DRatio->GetXaxis()->SetTitleSize(lXtitleSize);
-
+    histo1DRatio->GetXaxis()->SetTitleOffset(lXtitleOffset);
+    
     histo1DRatio->GetYaxis()->SetRangeUser(lYmin,lYmax);        
     histo1DRatio->GetYaxis()->SetTitle("MC over Data");
     histo1DRatio->DrawCopy();
