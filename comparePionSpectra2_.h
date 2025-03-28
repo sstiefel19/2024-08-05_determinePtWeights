@@ -60,9 +60,7 @@ TCanvas*
                            bool verticallyTight=true,
                            std::string theDir="");
 
-TH1D* getWeightedMCHistogramFromLastFitAndLastMCWOW(TH1* thisMCWOW, TF1* lastFit, TH1* lastMCWOW);
 void setMarginsToZero(TVirtualPad& vpad);
-void squeezeAndPrepare_nSubPads(TVirtualPad& c, int n);
 
 // ===============================================================
 /*

@@ -92,8 +92,6 @@ void doMultiRound(std::map<int, std::string> const &theMapBaseDirs,
                 true /*verticallyTight*/,
                 theDir);
 
-        // prepare for verticallyTight layout
-        // squeezeAndPrepare_nSubPads(*cNx1_i, 5);
         lPads[iPos+1]->cd();
         cNx1_i->DrawClonePad();
     }
@@ -229,10 +227,11 @@ TCanvas*
         float nEvents = ((TH1*)lGCo.GetFromESD("NEvents"))->GetBinContent(1); 
         TH1* lHistoMesonsInRap= (TH1*)lGCo.GetFromMC(Form("MC_%s%s_Pt", meson.data(), theWoWeights.data()));
         TH1* hInvYield_WW = lHistoMesonsInRap 
-        ? utils_computational::TranformD2DPtDYYieldToInvariantYield(
-            *utils_TH1::DivideTH1ByBinWidths(*lHistoMesonsInRap, "divW", nullptr, nullptr),
-            "inv", lNewHistoName.data(), lHistoTitleForLeg.data(), 1./(nEvents*1.6*lMeson2GammaBR)) // 1.6 = deltaY
-        : nullptr;
+            ? utils_computational::TranformD2DPtDYYieldToInvariantYield(
+                *utils_TH1::DivideTH1ByBinWidths(*lHistoMesonsInRap, "divW", nullptr, nullptr),
+                "inv", lNewHistoName.data(), lHistoTitleForLeg.data(), 
+                1./(nEvents*1.6*lMeson2GammaBR)) // 1.6 = deltaY
+            : nullptr;
         return hInvYield_WW;
     };
 
@@ -318,10 +317,9 @@ TCanvas*
     // fit data and plot both together
     cout << "============================= pad 1 ===========================================\n";
     auto &pad1 = *getNextTab();    
-    TH1F * histo1DSpectra;
-    histo1DSpectra          = new TH1F("histo1DSpectra", "histo1DSpectra",1000, minPtPlot, maxPtPlot);
+    TH1F &histo1DSpectra = *new TH1F("histo1DSpectra", "histo1DSpectra",1000, minPtPlot, maxPtPlot);
     SetStyleHistoTH1ForGraphs( 
-        histo1DSpectra, 
+        &histo1DSpectra, 
         "#it{p}_{T} (GeV/#it{c})", 
         "#frac{1}{2#pi #it{N}_{ev}} #frac{d^{2}#it{N}}{#it{p}_{T}d#it{p}_{T}d#it{y}} (GeV/#it{c})^{-2}", 
         0.,  // xLableSize
@@ -332,21 +330,19 @@ TCanvas*
         lYtitleOffset);  // yTitleOffset
     
     if (isFirstCol){
-        histo1DSpectra->GetXaxis()->SetLabelOffset(-0.01);
-        histo1DSpectra->GetYaxis()->CenterTitle(true);
-        histo1DSpectra->GetYaxis()->SetLabelOffset(0.01);
+        histo1DSpectra.GetXaxis()->SetLabelOffset(-0.01);
+        histo1DSpectra.GetYaxis()->CenterTitle(true);
+        histo1DSpectra.GetYaxis()->SetLabelOffset(0.01);
     }
     
-    histo1DSpectra->GetXaxis()->SetRangeUser(minPtPlot, maxPtPlot);
-    histo1DSpectra->GetYaxis()->SetRangeUser(1E-8, 5E3);
-    histo1DSpectra->DrawCopy();
+    histo1DSpectra.GetXaxis()->SetRangeUser(minPtPlot, maxPtPlot);
+    histo1DSpectra.GetYaxis()->SetRangeUser(1E-8, 5E3);
+    histo1DSpectra.DrawCopy();
 
     float lLegendNDC_x1 = (round==3) ? 0.51 : 0.61;
-
     auto xnew = [theLeftMargin](float xold){return theLeftMargin + (1.-theLeftMargin)*xold;};
     auto legend_pad1 = new TLegend(xnew(lLegendNDC_x1), 0.51, xnew(0.98), .96);
     legend_pad1->SetBorderSize(0);
-    legend_pad1->SetTextSize(lLegendTextSize);
             
     // plot for all iterations
     lHistoData->SetTitle(Form("%s yields for %s", meson.data(), eventCutNo.data()));
@@ -406,32 +402,25 @@ TCanvas*
     mesDec.append(" #rightarrow #gamma #gamma");
     
     // add text in plot
-    TPaveText* pav = new TPaveText(xnew(0.045), 0.01, xnew(0.39), 0.48, "NDC"); // x1,y1,x2,y2
-    pav->AddText(Form("%s  %s", collisionSystem.Data(), centString(eventCutNo)));
-    pav->AddText(mesDec.data());
-    pav->AddText("");
-    
-    pav->AddText(Form("iteration: %d", round));
-    pav->AddText(Form("%s in %s", meson.data(), eventCutNo.data()));
-    pav->AddText(Form("fit function: %s", fitFunction));
-    pav->AddText(mcTag);
-    //~ ((TText*)pav->GetListOfLines()->Last())->SetTextAlign(22); // centered hor. and vert.
-    pav->SetTextSize(lLegendTextSize);
-    pav->SetBorderSize(0);
-    pav->SetFillStyle(1001);
-    pav->SetFillColor(kWhite);
-    pav->SetTextAlign(11);
-    pav->Draw();
+    std::vector<std::string const> const lPaveTextLines({ 
+        Form("%s  %s", collisionSystem.Data(), centString(eventCutNo)),
+        mesDec.data(),
+        "", 
+        Form("iteration: %d", round), 
+        Form("%s in %s", meson.data(), eventCutNo.data()),
+        mcTag});
+
+    TPaveText &pav = utils_plotting::SetupTPaveText(
+        xnew(0.045), 0.01, xnew(0.39), 0.48, lPaveTextLines, lLegendTextSize); // x1,y1,x2,y2
 
     //////////////////////////////////////////////////////////////////////////
     // current spectra / last iteration fit
     cout << "==================== PAD 2 ===================================\n";
     auto &pad2 = *getNextTab();
 
-    TH1F *histo1DRatio;
-    histo1DRatio          = new TH1F("histo1DRatio", "histo1DRatio",1000, minPtPlot, maxPtPlot);
+    TH1F &histo1DRatio = *new TH1F("histo1DRatio", "histo1DRatio",1000, minPtPlot, maxPtPlot);
     SetStyleHistoTH1ForGraphs(
-        histo1DRatio, 
+        &histo1DRatio, 
         "#it{p}_{T} (GeV/#it{c})", 
         "This MC over last Fit", 
         0.,  // xLableSize
@@ -441,12 +430,12 @@ TCanvas*
         0.,  // xTitleOffset
         lRatioYtitleOffsets);  // yTitleOffset
     
-    histo1DRatio->GetXaxis()->SetLabelOffset(-0.01);
-    histo1DRatio->GetXaxis()->SetRangeUser(minPtPlot, maxPtPlot);
-    histo1DRatio->GetYaxis()->SetLabelOffset(0.01);
-    histo1DRatio->GetYaxis()->CenterTitle(true);
-    histo1DRatio->GetYaxis()->SetRangeUser(0.9, 1.1);        
-    histo1DRatio->DrawCopy();
+    histo1DRatio.GetXaxis()->SetLabelOffset(-0.01);
+    histo1DRatio.GetXaxis()->SetRangeUser(minPtPlot, maxPtPlot);
+    histo1DRatio.GetYaxis()->SetLabelOffset(0.01);
+    histo1DRatio.GetYaxis()->CenterTitle(true);
+    histo1DRatio.GetYaxis()->SetRangeUser(0.9, 1.1);        
+    histo1DRatio.DrawCopy();
 
     auto leg2 = new TLegend(xnew(0.144),0.73,xnew(0.44),0.92);
     leg2->SetBorderSize(0);
@@ -458,7 +447,6 @@ TCanvas*
         TList* entries = legend_pad1->GetListOfPrimitives();
         for (int i = 0; i < entries->GetEntries(); ++i) {
             TLegendEntry* entry = (TLegendEntry*)entries->At(i);
-            // entry->Dump();
             if (entry && std::string(entry->GetLabel()).find("MC") != std::string::npos) {
                 TObject* obj = entry->GetObject();
                 if (!obj) {continue;}
@@ -480,8 +468,8 @@ TCanvas*
     cout << "==================== PAD 3 ===================================\n";
     auto &pad3 = *getNextTab();
 
-    histo1DRatio->GetYaxis()->SetTitle("this over last efficiency");
-    histo1DRatio->DrawCopy();
+    histo1DRatio.GetYaxis()->SetTitle("this over last efficiency");
+    histo1DRatio.DrawCopy();
     
     if (round) {
         printf("SFS round = %d\n", round);
@@ -511,22 +499,17 @@ TCanvas*
     cout << "==================== PAD 4 ===================================\n";
 
     auto &pad4 = *getNextTab();
-    histo1DRatio->GetYaxis()->SetTitle("this Data over its Fit");
-    histo1DRatio->GetYaxis()->SetRangeUser(lYmin,lYmax);
-    histo1DRatio->DrawCopy();
+    histo1DRatio.GetYaxis()->SetTitle("this Data over its Fit");
+    histo1DRatio.GetYaxis()->SetRangeUser(lYmin,lYmax);
+    histo1DRatio.DrawCopy();
 
     // this fit over this data
     TH1* hHistoRatioDataToFit = CalculateHistoRatioToFit(lHistoData, fitDataYield, kFALSE);
     hHistoRatioDataToFit->SetName(Form("hHistoRatioDataToFit_it%d", round));
-    DrawGammaSetMarker(hHistoRatioDataToFit, 20, 1.0, colorFit, colorFit);        // marker style, size, color, line color
-    hHistoRatioDataToFit->Draw("SAME");
 
-    auto leg4 = new TLegend(xnew(0.16),0.6,xnew(0.44),0.86);
-    leg4->SetTextSize(lLegendTextSize);
-    leg4->AddEntry(hHistoRatioDataToFit,"this data over this fit","lep");
-    leg4->SetBorderSize(0);
-    leg4->Draw();
+    auto *leg4 = utils_plotting::GetLegend(xnew(0.16),0.6,xnew(0.44),0.86);
     DrawGammaLines(minPtPlot, maxPtPlot ,1., 1., 1, kBlack, 2);
+    utils_plotting::DrawAndAdd(*hHistoRatioDataToFit, "same", colorFit, 3.0, leg4, "this data over this fit", "l", lLegendTextSize, true);
 
     //////////////////////////////////////////////////////////////////////////
     // ratio of this weighted MCs over this data. They differ only as much as this over last true efficiency
@@ -534,15 +517,15 @@ TCanvas*
     auto &pad5 = *getNextTab();
     pad5.SetTicks(1,2);
     // // Hide labels on the top X-axis
-    // histo1DRatio->GetXaxis()->SetLabelOffset(999); // Move top labels far away to effectively hide them
+    // histo1DRatio.GetXaxis()->SetLabelOffset(999); // Move top labels far away to effectively hide them
 
-    histo1DRatio->GetXaxis()->SetLabelSize(lXlabelSize);
-    histo1DRatio->GetXaxis()->SetTitleSize(lXtitleSize);
-    histo1DRatio->GetXaxis()->SetTitleOffset(lXtitleOffset);
+    histo1DRatio.GetXaxis()->SetLabelSize(lXlabelSize);
+    histo1DRatio.GetXaxis()->SetTitleSize(lXtitleSize);
+    histo1DRatio.GetXaxis()->SetTitleOffset(lXtitleOffset);
     
-    histo1DRatio->GetYaxis()->SetRangeUser(lYmin,lYmax);        
-    histo1DRatio->GetYaxis()->SetTitle("MC over Data");
-    histo1DRatio->DrawCopy();
+    histo1DRatio.GetYaxis()->SetRangeUser(lYmin,lYmax);        
+    histo1DRatio.GetYaxis()->SetTitle("MC over Data");
+    histo1DRatio.DrawCopy();
 
     auto leg5 = new TLegend(xnew(0.144),0.73,xnew(0.44),0.92);
     leg5->SetBorderSize(0);
@@ -589,48 +572,11 @@ TCanvas*
     return &cOneIt;
 }
 
-//============================================================================
-TH1D* getWeightedMCHistogramFromLastFitAndLastMCWOW(TH1* thisMCWOW, TF1* lastFit, TH1* lastMCWOW){
-    
-    TH1D* thisMCWWcalculated = (TH1D*)thisMCWOW->Clone("thisMCWWcalculated"); 
-    thisMCWWcalculated->Reset("ICES");
-    for (int iBin=1; iBin<=thisMCWWcalculated->GetNbinsX(); ++iBin){
-        float pt = thisMCWWcalculated->GetBinCenter(iBin);
-        float ptEdge = thisMCWWcalculated->GetBinLowEdge(iBin);
-        float yieldlastMC = lastMCWOW->Interpolate(pt);
-        
-        //~ cout << ptEdge << ": " << lastFit->Eval(ptEdge)/lastMCWOW->Interpolate(ptEdge) << endl;
-        
-        float weight = yieldlastMC ? lastFit->Eval(pt)/yieldlastMC : 1.;
-        thisMCWWcalculated->SetBinContent(iBin, thisMCWOW->GetBinContent(iBin) * weight );
-        thisMCWWcalculated->SetBinError(iBin, thisMCWOW->GetBinError(iBin) * weight );
-        
-        //~ cout << pt << ": " << weight << endl;
-        
-    }
-    return thisMCWWcalculated;
-    
-}
-
 //====================================================================   
 void setMarginsToZero(TVirtualPad& vpad){
     vpad.SetLeftMargin(0.0);
     vpad.SetRightMargin(0.0);
     vpad.SetTopMargin(0.0);
     vpad.SetBottomMargin(0.0);
-}
-
-//====================================================================
-void squeezeAndPrepare_nSubPads(TVirtualPad& vpad, int n){
-    
-    for (int i=1; i<=n; ++i){
-        vpad.cd(i);
-        auto* p = (TPad*)gPad;        
-        p->SetTicks(1,1); // enable ticks on both x and y axes (all sides)
-        p->SetRightMargin(0.0);
-        p->SetTopMargin(i==1 ? 0.1 : 0.0);
-        p->SetBottomMargin(i==4 ? 0.25 : 0.0);    
-    }
-    vpad.Update();
 }
 
