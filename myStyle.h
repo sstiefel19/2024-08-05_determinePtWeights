@@ -111,31 +111,6 @@ TH1D* makeRatioDiffBinnings(TH1D* h1, TH1D* h2, const char* name, const char* ti
 
         l1->Draw("same");
     }
-
-
-    //**********************************************************************************************************
-    // Calculates the ratio of a histogram and a fit, with the posibility to integrate the function in the same
-    // bin width as the data
-    //**********************************************************************************************************
-    TH1* CalculateHistoRatioToFit (TH1* histo, TF1* fit, Bool_t integrateFunction=kFALSE){
-        TH1* histo2                = (TH1*)histo->Clone("Dummy");
-        for( Int_t I = 1; I < histo->GetNbinsX() +1 ;I++){
-            Double_t xValue         = histo2->GetBinCenter(I);
-            Double_t yValue         = fit->Eval(xValue);
-            if (integrateFunction){
-                Double_t xMin       = histo2->GetXaxis()->GetBinLowEdge(I);
-                Double_t xMax       = histo2->GetXaxis()->GetBinUpEdge(I);
-                yValue              = fit->Integral(xMin,xMax)/(xMax-xMin);
-            }
-            Double_t formerYValue   = histo2->GetBinContent(I);
-            if (yValue != 0){
-                histo2->SetBinContent(I,formerYValue/yValue);
-                histo2->SetBinError(I,histo2->GetBinError(I)/yValue);
-            }
-        }
-        return histo2;
-    }
-    
     
     //__________________________________________________________________________________________________________
     void DrawGammaSetMarker(    TH1* histo1,

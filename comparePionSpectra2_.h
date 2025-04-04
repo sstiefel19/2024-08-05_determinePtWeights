@@ -53,7 +53,7 @@ TCanvas*
                            std::string meson, 
                            const char* fitFunction, 
                            const char* fitOption, 
-                           const char* mcTag, 
+                           const char* effiPlotLabel, 
                            size_t thePlotWidth, // in pixels
                            double theLeftMargin=0.25,
                            double theRightMargin=0.05,
@@ -155,12 +155,12 @@ void comparePionSpectra2_(){
     float lRightMargin = 0.02;
 
     // run one config
-    doMultiRound(lMapBaseDirs, "Pi0", "10130e03", lMap_mesonCent_params, lRounds,
-                 lLeftMargin/*theLeftMargin*/, lRightMargin/*theRightMargin*/, lDir);
+    // doMultiRound(lMapBaseDirs, "Pi0", "10130e03", lMap_mesonCent_params, lRounds,
+    //              lLeftMargin/*theLeftMargin*/, lRightMargin/*theRightMargin*/, lDir);
     // doMultiRound(lMapBaseDirs, "Eta", "10130e03", lMap_mesonCent_params, lRounds,
     //              lLeftMargin/*theLeftMargin*/, lRightMargin/*theRightMargin*/, lDir);
     
-                 return;
+    //  return;
 
     for (auto meson : std::vector<std::string>{"Pi0", "Eta"}){
         for (auto evtcut : std::vector<std::string>{"10130e03", "13530e03"}){
