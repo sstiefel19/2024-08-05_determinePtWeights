@@ -138,9 +138,9 @@ void comparePionSpectra2(){
     gROOT->Reset();   
     gROOT->SetStyle("Plain");
 
-    std::vector<int> lRounds{0, 2, 3, 4, 5, 6, 7};
+    // std::vector<int> lRounds{0, 2, 3, 4, 5, 6, 7};
     // std::vector<int> lRounds{0, 2, 3, 4, 5, 6};
-    // std::vector<int> lRounds{6, 7};
+    std::vector<int> lRounds{6, 7};
 
     // create meaningfull id and directory to write into
     // std::string lID(Form("%d_%d_", TDatime().GetDate(), TDatime().GetTime()));
@@ -155,12 +155,12 @@ void comparePionSpectra2(){
     float lRightMargin = 0.02;
 
     // run one config
-    // doMultiRound(lMapBaseDirs, "Pi0", "10130e03", lMap_mesonCent_params, lRounds,
-    //              lLeftMargin/*theLeftMargin*/, lRightMargin/*theRightMargin*/, lDir);
+    doMultiRound(lMapBaseDirs, "Pi0", "10130e03", lMap_mesonCent_params, lRounds,
+                 lLeftMargin/*theLeftMargin*/, lRightMargin/*theRightMargin*/, lDir);
     // doMultiRound(lMapBaseDirs, "Eta", "10130e03", lMap_mesonCent_params, lRounds,
     //              lLeftMargin/*theLeftMargin*/, lRightMargin/*theRightMargin*/, lDir);
     
-    //  return;
+     return;
 
     for (auto meson : std::vector<std::string>{"Pi0", "Eta"}){
         for (auto evtcut : std::vector<std::string>{"10130e03", "13530e03"}){
