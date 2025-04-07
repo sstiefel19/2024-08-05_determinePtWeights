@@ -31,63 +31,6 @@
 #include "comparePionSpectra2.h"
 #include "TSystem.h"
 
-// TF1* GetExponentialFunction(TH1D & theTH1, double theX){
-        
-//     // find two non-zero bins to use for interpolation
-//     int bin = theTH1.FindBin(theX);
-//     float y1 = theTH1.GetBinContent(bin);
-//     if (!y1) { 
-//         printf("INFO: GetExponentialFunction(): %s at x=%f, bin=%d, has bin content 0. returning nullptr\n",
-//             theTH1.GetName(), theX, bin);
-//         return nullptr;
-//     }
-    
-//     float x1 = theTH1.GetBinCenter(bin);
-//     int nBins = theTH1.GetNbinsX();
-//     int adjBin = (bin==1) ? 2 
-//                         : bin==nBins ? nBins-1 
-//                                         : theX<=x1 ? bin-1 
-//                                                 : bin+1;
-    
-//     float x2 = theTH1.GetBinCenter(adjBin);
-//     float y2 = theTH1.GetBinContent(adjBin);
-//     if (!y2){
-//         adjBin = adjBin<bin ? bin+1 : bin-1;
-//         if (!adjBin || adjBin > nBins) {
-//             cout << "ERROR: GetExponentialFunction(): adjBin out of binrange\n";
-//             return nullptr;
-//         }
-//         x2 = theTH1.GetBinCenter(adjBin);
-//         y2 = theTH1.GetBinContent(adjBin);
-//         if (!y2) {
-//             cout << "y2 0.\n";
-//             return nullptr;
-//         }
-//     }
-    
-    
-//     printf("using bin %d %f %f and bin %d %f %f\n", bin, x1, y1, adjBin, x2, y2);
-    
-//     float b = TMath::Log(y2/y1) / (x2-x1);
-//     float a = TMath::Log(y1) - b*x1;
-    
-//     // find out where function needs to live
-//     double xmin = std::min(x1, x2);
-//     xmin = std::min(xmin, theX);
-//     double xmax = std::max(x1, x2);
-//     xmax = std::max(xmax, theX);
-    
-//     TF1* ret = new TF1("tf1", "expo(0)", xmin, xmax); 
-//     ret->SetParameters(a,b);
-//     return ret;
-// }
-
-// double ExponentialInterpolate(TH1D & theTH1, double theX){
-    
-//     TF1* f = GetExponentialFunction(theTH1, theX);
-//     return f ? f->Eval(theX) : 0.;
-// }
-
 void doMultiRound(std::map<int, std::string> const &theMapBaseDirs,
                   std::string theMeson, 
                   std::string theCent,
@@ -340,13 +283,11 @@ TCanvas*
     // graphYield_mc_mb->Fit(fit_mc_mb_nw, fitOption, "", minPtPlot, maxPtPlot);
 
     // 2.2 try local exponential interpolations
-    TF1 *f_exp_inter_mc_mb_nw = 
-        &utils_TF1::ExponentialInterpolationBetweenBinCenters(
+    TF1 &f_exp_inter_mc_mb_nw = 
+        utils_TH1::GlobalPieceWiseExponentialInterpolation(
             Form("%s_exp_inter", 
-                hInvMCYield_mc_mb_nw->GetName()),
+                 hInvMCYield_mc_mb_nw->GetName()),
             *hInvMCYield_mc_mb_nw);
-    
-
     
     // 3) ========================= plotting =============================================
     bool isFirstCol = theLeftMargin;
@@ -461,7 +402,7 @@ TCanvas*
     fit_data->SetRange(minPtPlot, maxPtPlot);
     // utils_plotting::DrawAndAdd(*fit_data,     "same", colorFit, 3.0, legend_pad1, "Fit Data", "l", lLegendTextSize, true);
     // utils_plotting::DrawAndAdd(*fit_mc_mb_nw, "same", colorFit+2, 3.0, legend_pad1, "Fit MC MB NW", "l", lLegendTextSize, true);
-    utils_plotting::DrawAndAdd(*f_exp_inter_mc_mb_nw, "same", colorFit+2, 3.0, legend_pad1, "exp inter MC MB NW", "l", lLegendTextSize, true);
+    utils_plotting::DrawAndAdd(f_exp_inter_mc_mb_nw, "same", colorFit+2, 3.0, legend_pad1, "exp inter MC MB NW", "l", lLegendTextSize, true);
         
     auto centString = [](std::string& evtCutNo){
         std::string& e = evtCutNo;
@@ -588,7 +529,7 @@ TCanvas*
 
     // this mc_mb_nw's exponential interpolation over mc_mb_nw
     TH1* hHistoRatioMCMBNWExpInterToHisto = utils_TH1::DivideTH1ByTF1( // todo: check integreate function yes or no also for data fits!!
-        *hInvMCYield_mc_mb_nw, *f_exp_inter_mc_mb_nw, Form("hHistoRatio_mc_mb_nw_expInter_it%d", round), nullptr, false/*integrateFunction*/);
+        *hInvMCYield_mc_mb_nw, f_exp_inter_mc_mb_nw, Form("hHistoRatio_mc_mb_nw_expInter_it%d", round), nullptr, false/*integrateFunction*/);
         
     auto *leg4 = utils_plotting::GetLegend(xnew(0.16),0.6,xnew(0.44),0.86);
     DrawGammaLines(minPtPlot, maxPtPlot ,1., 1., 1, kBlack, 2);
