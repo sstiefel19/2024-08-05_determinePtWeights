@@ -140,8 +140,9 @@ TCanvas*
     std::string filenameData_last(giveFilename(std::max(0, round-1), "data", ""));
 
     TH1D* lHistoData = (TH1D*)utils_files_strings::GetObjectFromPathInFile(
-        filenameData.data(), 
-        "CorrectedYieldTrueEff");
+        filenameData, 
+        "CorrectedYieldTrueEff",
+        "clone");
                 
     // get counts directly from trainfile and transform to inv yield myself
     float lMeson2GammaBR = isPi0 ? 0.98798 : 0.3931;
@@ -164,10 +165,11 @@ TCanvas*
                 ? "997" 
                 : "996"); 
         // special cases for first iterations
-        if (!lIsMB && (round<3)){
+        if (!lIsMB && (round<3) || (round>7)){
             switch (round) {
                 case 1: lConfig = isPi0 ? "995" : "996";
                 case 2: lConfig = isPi0 ? "997" : "998";
+                case 8: lConfig = isPi0 ? "997" : "995";
                 default: return static_cast<TH1*>(nullptr);     
             }
         }
@@ -187,7 +189,11 @@ TCanvas*
         std::string mcTag(Form("%s", lIsMB ? "MB" : asTag.data()));
         std::string lNewHistoName(Form("MC_%s_%s", mcTag.data(), weightsTag.data()));
         std::string lHistoTitleForLeg(Form("MC %s", mcTag.data()));
-        std::string abac(isCentral ? "ab" : "ac");
+        std::string abac((round>7) ?
+              "MBabc"
+            : isCentral ? 
+                "ab" 
+              : "ac");
 
         printf("SFS round, theMBAS.data(), asTag.data(), weightsTag.data(), mcTag.data(), lNewHistoName.data(), lIsMB, lIsAS2 :\n\t %d %s %s %s %s %s %d %d\n", round, theMBAS.data(), asTag.data(), weightsTag.data(), mcTag.data(), lNewHistoName.data(), lIsMB, lIsAS2);
                
@@ -418,7 +424,7 @@ TCanvas*
     mesDec.append(" #rightarrow #gamma #gamma");
     
     // add text in plot
-    std::vector<std::string const> const lPaveTextLines({ 
+    std::vector<std::string> const lPaveTextLines({ 
         Form("%s  %s", collisionSystem.Data(), centString(eventCutNo)),
         mesDec.data(),
         "", 

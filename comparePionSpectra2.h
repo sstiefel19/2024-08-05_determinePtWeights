@@ -124,15 +124,15 @@ void comparePionSpectra2(){
 
         // all iterations
     std::map<int, std::string> lMapBaseDirs{
-        {0, "~/2023-_analysis/afterburner/2023-10-24_newCutNewSplinesWPCWFlexCock"},
-        {1, "~/2023-_analysis/afterburner/2023-11-05_MBwoPtWAddedSigWptw_newDataTrain_mixedMesonAmp"},
-        {2, "~/2023-_analysis/afterburner/2024-08-05_allASMC_ptw0b"},
-        {3, "~/2023-_analysis/afterburner/2024-08-14_allASMC_ptw2"}, 
-        {4, "~/2023-_analysis/afterburner/2024-10-25_allASMC_ptw3_multiEffiMerge_limPt"},
-        {5, "~/2023-_analysis/afterburner/2024-10-31_allASMC_ptw4"},
-        {6, "~/2023-_analysis/afterburner/2024-11-04_allASMC_ptw5"},
-        {7, "~/2023-_analysis/afterburner/2024-11-07_allASMC_ptw6"}
-        // {7, "~/2025/2025-03-18_AliPhysics_testPtWeights/afterburner_ptw6"}
+        {0, "~/work/afterburner/2023-10-24_newCutNewSplinesWPCWFlexCock"},
+        {1, "~/work/afterburner/2023-11-05_MBwoPtWAddedSigWptw_newDataTrain_mixedMesonAmp"},
+        {2, "~/work/afterburner/2024-08-05_allASMC_ptw0b"},
+        {3, "~/work/afterburner/2024-08-14_allASMC_ptw2"}, 
+        {4, "~/work/afterburner/2024-10-25_allASMC_ptw3_multiEffiMerge_limPt"},
+        {5, "~/work/afterburner/2024-10-31_allASMC_ptw4"},
+        {6, "~/work/afterburner/2024-11-04_allASMC_ptw5"},
+        {7, "~/work/afterburner/2024-11-07_allASMC_ptw6"},
+        {8, "~/work/afterburner/2025/2025-04-18_allASMC_ptw_6_retakePtWeights_0"}
     };
 
     gROOT->Reset();   
@@ -140,7 +140,7 @@ void comparePionSpectra2(){
 
     // std::vector<int> lRounds{0, 2, 3, 4, 5, 6, 7};
     // std::vector<int> lRounds{0, 2, 3, 4, 5, 6};
-    std::vector<int> lRounds{6, 7};
+    std::vector<int> lRounds{8};
 
     // create meaningfull id and directory to write into
     // std::string lID(Form("%d_%d_", TDatime().GetDate(), TDatime().GetTime()));
