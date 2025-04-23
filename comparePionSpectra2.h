@@ -48,12 +48,12 @@ void doMultiRound(std::map<int, std::string> const &theMapBaseDirs,
 
 TCanvas* 
     fitMesonAndWriteToFile(std::map<int, std::string> const &theMapBaseDirs,
-                           int round, 
-                           std::string eventCutNo, 
-                           std::string meson, 
-                           const char* fitFunction, 
-                           const char* fitOption, 
-                           const char* effiPlotLabel, 
+                           int theRound, 
+                           std::string theEventCutNo, 
+                           std::string theMeson, 
+                           std::string theFitFunction, 
+                           std::string theFitOption, 
+                           std::string theEffiPlotLabel, 
                            size_t thePlotWidth, // in pixels
                            double theLeftMargin=0.25,
                            double theRightMargin=0.05,
@@ -83,13 +83,15 @@ void comparePionSpectra2(){
                        {"tcmDoublePow", "FM", "efficiency from MB + ASh + ASl"},// 4
                        {"tcmDoublePow", "FM", "efficiency from MB + ASh + ASl"},// 5
                        {"tcmDoublePow", "FM", "efficiency from MB + ASh + ASl"},// 6
-                       {"tcmDoublePow", "FM", "efficiency from MB + ASh + ASl"} // 7
+                       {"tcmDoublePow", "FM", "efficiency from MB + ASh + ASl"}, // 7
+                       {"tcmDoublePow", "FM", "efficiency from MB + ASh + ASl"} // 8
                       };
     
     tVPars vPi0_135 = {{"oHag", "EX0FM", "efficiency from MB"},
                        {"oHag", "EX0FM", "efficiency from MB + ASh"},
                        {"tcmDoublePow", "FM", "efficiency from MB + (ASl&ASh)"},
                        {"tcmDoublePow", "FM", "efficiency from MB + (ASl&ASh)"},
+                       {"tcmDoublePow", "FM", "efficiency from MB + ASh + ASl"},
                        {"tcmDoublePow", "FM", "efficiency from MB + ASh + ASl"},
                        {"tcmDoublePow", "FM", "efficiency from MB + ASh + ASl"},
                        {"tcmDoublePow", "FM", "efficiency from MB + ASh + ASl"},
@@ -103,6 +105,7 @@ void comparePionSpectra2(){
                        {"oHag", "EX0FM", "efficiency from MB + ASh + ASl"},
                        {"oHag", "EX0FM", "efficiency from MB + ASh + ASl"},
                        {"oHag", "EX0FM", "efficiency from MB + ASh + ASl"},
+                       {"oHag", "EX0FM", "efficiency from MB + ASh + ASl"},
                        {"oHag", "EX0FM", "efficiency from MB + ASh + ASl"}
                       };
 
@@ -110,6 +113,7 @@ void comparePionSpectra2(){
                        {"tcmDoublePow", "FM", "efficiency from MB + ASh"},
                        {"tcmDoublePow", "FM", "efficiency from MB + (ASl&ASh)"},
                        {"tcmDoublePow", "FM", "efficiency from MB + (ASl&ASh)"},
+                       {"tcmDoublePow", "FM", "efficiency from MB + ASh + ASl"},
                        {"tcmDoublePow", "FM", "efficiency from MB + ASh + ASl"},
                        {"tcmDoublePow", "FM", "efficiency from MB + ASh + ASl"},
                        {"tcmDoublePow", "FM", "efficiency from MB + ASh + ASl"},
@@ -124,14 +128,14 @@ void comparePionSpectra2(){
 
         // all iterations
     std::map<int, std::string> lMapBaseDirs{
-        {0, "~/work/afterburner/2023-10-24_newCutNewSplinesWPCWFlexCock"},
-        {1, "~/work/afterburner/2023-11-05_MBwoPtWAddedSigWptw_newDataTrain_mixedMesonAmp"},
-        {2, "~/work/afterburner/2024-08-05_allASMC_ptw0b"},
-        {3, "~/work/afterburner/2024-08-14_allASMC_ptw2"}, 
-        {4, "~/work/afterburner/2024-10-25_allASMC_ptw3_multiEffiMerge_limPt"},
-        {5, "~/work/afterburner/2024-10-31_allASMC_ptw4"},
-        {6, "~/work/afterburner/2024-11-04_allASMC_ptw5"},
-        {7, "~/work/afterburner/2024-11-07_allASMC_ptw6"},
+        {0, "~/work/afterburner/2023/2023-10-24_newCutNewSplinesWPCWFlexCock"},
+        {1, "~/work/afterburner/2023/2023-11-05_MBwoPtWAddedSigWptw_newDataTrain_mixedMesonAmp"},
+        {2, "~/work/afterburner/2024/2024-08-05_allASMC_ptw0b"},
+        {3, "~/work/afterburner/2024/2024-08-14_allASMC_ptw2"}, 
+        {4, "~/work/afterburner/2024/2024-10-25_allASMC_ptw3_multiEffiMerge_limPt"},
+        {5, "~/work/afterburner/2024/2024-10-31_allASMC_ptw4"},
+        {6, "~/work/afterburner/2024/2024-11-04_allASMC_ptw5"},
+        {7, "~/work/afterburner/2024/2024-11-07_allASMC_ptw6"},
         {8, "~/work/afterburner/2025/2025-04-18_allASMC_ptw_6_retakePtWeights_0"}
     };
 
@@ -139,8 +143,9 @@ void comparePionSpectra2(){
     gROOT->SetStyle("Plain");
 
     // std::vector<int> lRounds{0, 2, 3, 4, 5, 6, 7};
-    // std::vector<int> lRounds{0, 2, 3, 4, 5, 6};
-    std::vector<int> lRounds{8};
+    // std::vector<int> lRounds{ 2, 3, 4, 5, 7, 8};
+    std::vector<int> lRounds{6, 7, 8};
+    // std::vector<int> lRounds{8};
 
     // create meaningfull id and directory to write into
     // std::string lID(Form("%d_%d_", TDatime().GetDate(), TDatime().GetTime()));
@@ -155,14 +160,16 @@ void comparePionSpectra2(){
     float lRightMargin = 0.02;
 
     // run one config
-    doMultiRound(lMapBaseDirs, "Pi0", "10130e03", lMap_mesonCent_params, lRounds,
-                 lLeftMargin/*theLeftMargin*/, lRightMargin/*theRightMargin*/, lDir);
+    // doMultiRound(lMapBaseDirs, "Pi0", "10130e03", lMap_mesonCent_params, lRounds,
+    //              lLeftMargin/*theLeftMargin*/, lRightMargin/*theRightMargin*/, lDir);
     // doMultiRound(lMapBaseDirs, "Eta", "10130e03", lMap_mesonCent_params, lRounds,
     //              lLeftMargin/*theLeftMargin*/, lRightMargin/*theRightMargin*/, lDir);
     
-     return;
+    //  return;
 
+    // for (auto meson : std::vector<std::string>{"Eta"}){
     for (auto meson : std::vector<std::string>{"Pi0", "Eta"}){
+        // for (auto evtcut : std::vector<std::string>{"10130e03", "13530e03"}){
         for (auto evtcut : std::vector<std::string>{"10130e03", "13530e03"}){
             printf("%s %s\n", meson.data(), evtcut.data());
             doMultiRound(lMapBaseDirs, 
