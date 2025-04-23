@@ -190,7 +190,7 @@ TCanvas*
                 // case 8: lConfig = isPi0 ? "997" : "995"; break;
                 
                 default: { 
-                    printf("line 179\n");
+printf("line 179\n");
                     return static_cast<TH1*>(nullptr);     
                 }
             }
@@ -266,7 +266,7 @@ TCanvas*
     };
 
     // compute all weighted and unweighted inv mc yields. The weighted ones should agree very well with last iterations' fits.
-    printf("245\n");
+printf("245\n");
     std::vector<TH1*> vInvMCYields_ww;
     std::vector<TH1*> vInvMCYields_wow;
     std::vector<std::string> vMCs({"mb"});
@@ -295,12 +295,12 @@ TCanvas*
             computeInvariantMCYieldFromTrainFile_andInsert(iWeightsQuali);
         }
     }
-    printf("269\n");
+printf("269\n");
     
     TH1 *hInvMCYield_mc_mb_nw = vInvMCYields_wow.size() 
         ?  vInvMCYields_wow.at(0) 
         : static_cast<TH1*>(nullptr);
-    printf("274\n");
+printf("274\n");
     
     // get fit and histo from last iteration
     std::string fitNameInFile(Form("%s_Data_5TeV_%s0", theMeson.data(), thEventCutNo.substr(0,5).data()));
@@ -322,10 +322,10 @@ printf("291\n");
     TF1* fit_data = FitObject(theFitFunction.data(), fit_data_name.data(), theMeson.data(), NULL, minPtPlot, maxPtPlot);            
     TGraphAsymmErrors* graphYield_data = new TGraphAsymmErrors(lHistoData);
     
-    printf("310\n");
+printf("310\n");
     graphYield_data->Fit(fit_data, theFitOption.data(), "", minPtPlot, maxPtPlot);
-    printf("295\n");
-    printf("\n");
+printf("295\n");
+printf("\n");
     // 2.1) fit minimum bias MC
     // std::string fit_mc_mb_name(Form("%s_LHC20e3a_5TeV_%s_it%d", theMeson.data(), thEventCutNo.substr(0,5).data(), theRound)); // need the it in the name here so we dont get many  objects with the same name when doing more than one it
     // TF1* fit_mc_mb_nw = FitObject(theFitFunction.data(), fit_mc_mb_name.data(), theMeson.data(), NULL, minPtPlot, maxPtPlot);            
@@ -339,7 +339,7 @@ printf("291\n");
                    hInvMCYield_mc_mb_nw->GetName()),
               *hInvMCYield_mc_mb_nw)
         : static_cast<TF1*>(nullptr);
-    printf("315\n");
+printf("315\n");
 
     // 3) ========================= plotting =============================================
     bool isFirstCol = theLeftMargin;
