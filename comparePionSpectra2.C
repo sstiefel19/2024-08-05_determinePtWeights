@@ -73,12 +73,12 @@ void doMultiRound(std::map<int, std::string> const &theMapBaseDirs,
         bool isLast = iPos == nCols-1;
         int theRound = theRounds[iPos];
 
-        bool isRoundAndPi0 = (theRound==8) && (theMeson=="Pi0");
-        bool is_0010 = isRoundAndPi0 && (theCent=="10130e03");
-        bool is_3050 = isRoundAndPi0 && (theCent=="13530e03");
+        bool isPi0 = theMeson=="Pi0";
+        // bool is_0010 = isRoundAndPi0 && (theCent=="10130e03");
+        // bool is_3050 = isRoundAndPi0 && (theCent=="13530e03");
         
-        Double_t lXminFit = is_0010 ?  0.6 : 0.;
-        Double_t lXmaxFit = 0.;
+        Double_t lXminFit = isPi0 ?  0.6 : 0.;
+        Double_t lXmaxFit = isPi0 ? 25 : 0.;
 
         TCanvas* cNx1_i = 
             fitMesonAndWriteToFile(
@@ -160,7 +160,7 @@ TCanvas*
     std::string filenameData(giveFilename(theRound, "data", ""));
     std::string filenameData_last(giveFilename(std::max(0, theRound-1), "data", ""));
 
-    TH1D* lHistoData = (TH1D*)utils_files_strings::GetObjectFromPathInFile(
+    TH1D* lHistoData_inv = (TH1D*)utils_files_strings::GetObjectFromPathInFile(
         filenameData, 
         "CorrectedYieldTrueEff",
         "clone",
@@ -295,7 +295,6 @@ printf("245\n");
             if (!h){
                 printf("WARNING: computeInvariantMCYieldFromTrainFile_andInsert(): computeInvariantMCYieldFromTrainFile() returned nullptr for mc = %s. Skipping iteration.\n", 
                     mc.data());
-                
             }
             std::vector<TH1*> &lVec = ww ? vInvMCYields_ww : vInvMCYields_wow;
             printf("Adding %s to %s\n", 
@@ -330,15 +329,32 @@ printf("274\n");
         fitNameInFile,
         Form("%s_lastItFit", fitNameInFile.data()),
         Form("%s_lastItFit", fitNameInFile.data()));
-printf("291\n");    
+printf("332\n");    
     // 2) ======================= do this iterations fit =================================
-    std::string fit_data_name(Form("%s_Data_5TeV_%s0_it%d", theMeson.data(), thEventCutNo.substr(0,5).data(), theRound)); // need the it in the name here so we dont get many  objects with the same name when doing more than one it
-    printf("306 theFitFunction.data() = %s\n", theFitFunction.data());
-    TF1* fit_data = FitObject(theFitFunction.data(), fit_data_name.data(), theMeson.data(), NULL, lMinPtPlot, lMaxPtPlot);            
-    TGraphAsymmErrors* graphYield_data = new TGraphAsymmErrors(lHistoData);
     
-printf("310\n");
-    graphYield_data->Fit(fit_data, theFitOption.data(), "", lMinPtFit, lMaxPtFit);
+    TH1 &lHistoData_var = *utils_computational::TranformInvariantYieldToD2DPtDY(*lHistoData_inv);
+printf("336 theFitFunction.data() = %s\n", theFitFunction.data());    
+
+std::string fit_data_inv_name(Form("%s_Data_5TeV_%s0_it%d", theMeson.data(), thEventCutNo.substr(0,5).data(), theRound)); // need the it in the name here so we dont get many  objects with the same name when doing more than one it
+    
+    // first the 'tradional' way
+    TF1 *lFit_data_inv = FitObject(theFitFunction.data(), fit_data_inv_name.data(), theMeson.data(), NULL, lMinPtPlot, lMaxPtPlot); 
+    lHistoData_inv->Fit(lFit_data_inv, theFitOption.data(), "", lMinPtFit, lMaxPtFit);
+
+    // then new
+    TF1 &lFit_data_var = utils_TF1::TransformInvYieldToDNDPT(Form("%s_multX", fit_data_inv_name.data()), *lFit_data_inv);
+    lFit_data_var.SetRange(lMinPtPlot, lMaxPtPlot);
+    lHistoData_var.Fit(&lFit_data_var, Form("I%s", theFitOption.data()), "", lMinPtFit, lMaxPtFit);
+
+    lFit_data_var.SetRange(lMinPtPlot, lMaxPtPlot);
+    // transform back for plotting -  should be close to lFit_data_inv
+    TF1 &lFit_data_var_trans_inv = utils_TF1::TransformDNDPTToInvYield(""/*triggers autom. suffix*/, lFit_data_var);
+
+    // compare both in invariant form
+    TF1 &lRatioFits_int_over_old = utils_TF1::TF1Division("lRatioFits_int_over_old", lFit_data_var_trans_inv, *lFit_data_inv, false /*theCheckRanges*/);
+
+
+
 printf("295\n");
 printf("\n");
     // 2.1) fit minimum bias MC
@@ -374,8 +390,8 @@ printf("315\n");
     gStyle->SetOptTitle(0); // disables histo titles as title on subpads
     gStyle->SetOptStat(0); // 
 
-    TCanvas &cOneIt = *new TCanvas(Form("canvas_%s_%i", fit_data->GetName(), theRound), 
-                                   Form("canvas_%s_%i", fit_data->GetName(), theRound), 
+    TCanvas &cOneIt = *new TCanvas(Form("canvas_%s_%i", lFit_data_inv->GetName(), theRound), 
+                                   Form("canvas_%s_%i", lFit_data_inv->GetName(), theRound), 
                                    thePlotWidth, 1000);
 
     cOneIt.SetMargin(0., 0., 0., 0.);    
@@ -426,8 +442,9 @@ printf("315\n");
     legend_pad1->SetBorderSize(0);
             
     // plot for all iterations
-    lHistoData->SetTitle(Form("%s yields for %s", theMeson.data(), thEventCutNo.data()));
-    utils_plotting::DrawAndAdd(*lHistoData,"same", colorData, 1.0, legend_pad1, "Data", "lep", lLegendTextSize, true, markerStyleData, 1.0);
+    lHistoData_inv->SetTitle(Form("%s yields for %s", theMeson.data(), thEventCutNo.data()));
+    utils_plotting::DrawAndAdd(*lHistoData_inv,"same", colorData, 1.0, legend_pad1, "Data", "lep", lLegendTextSize, true, markerStyleData, 1.0);
+    
     // keep this for reference
     // utils_plotting::DrawAndAdd(*lHistoMBonly_oldBin_WOW, "same", colorMCMB, 1.0, legend_pad1, "MC MB WoW", "lep", lLegendTextSize, true, markerStyleMCWOW, 1.0);
     
@@ -472,15 +489,19 @@ printf("315\n");
     if (lastItFit){
         utils_plotting::DrawAndAdd(*lastItFit, "same", kBlue, 3.0, legend_pad1, "last Fit", "l", lLegendTextSize, true);
     }
-    fit_data->SetRange(lMinPtPlot, lMaxPtPlot);
-    // utils_plotting::DrawAndAdd(*fit_data,     "same", colorFit, 3.0, legend_pad1, "Fit Data", "l", lLegendTextSize, true);
+    // utils_plotting::DrawAndAdd(*lFit_data_inv,     "same", colorFit, 3.0, legend_pad1, "Fit Data", "l", lLegendTextSize, true);
     // utils_plotting::DrawAndAdd(*fit_mc_mb_nw, "same", colorFit+2, 3.0, legend_pad1, "Fit MC MB NW", "l", lLegendTextSize, true);
+    // utils_plotting::DrawAndAdd(*f_exp_inter_mc_mb_nw, "same", colorFit+2, 3.0, legend_pad1, "exp inter MC MB NW", "l", lLegendTextSize, true);
     
-    if (f_exp_inter_mc_mb_nw)
-    {
-        utils_plotting::DrawAndAdd(*f_exp_inter_mc_mb_nw, "same", colorFit+2, 3.0, legend_pad1, "exp inter MC MB NW", "l", lLegendTextSize, true);
-    }
+    utils_plotting::DrawAndAdd(*lFit_data_inv, "same", colorFit, 3.0, legend_pad1, "Fit Data inv", "l", lLegendTextSize, true);
+    utils_plotting::DrawAndAdd(lHistoData_var, "same", colorData+2, 1., legend_pad1, "lHistoData_var", "lep", lLegendTextSize, true, kCircle, 1.);
+    utils_plotting::DrawAndAdd(lFit_data_var, "same", colorFit+2, 3.0, legend_pad1, "lFit_data_var", "l", lLegendTextSize, true);
+    utils_plotting::DrawAndAdd(lFit_data_var_trans_inv, "same", colorFit+4, 3.0, legend_pad1, "lFit_data_var_trans_inv", "l", lLegendTextSize, true);
 
+    // redraw data
+    utils_plotting::DrawAndAdd(*lHistoData_inv, "same", colorData, 1.);
+    utils_plotting::DrawAndAdd(lFit_data_var, "same", colorFit+2, 3.0);
+    // done with objects
     auto centString = [](std::string& evtCutNo){
         std::string& e = evtCutNo;
         if (e[0]=='1') { 
@@ -498,7 +519,8 @@ printf("315\n");
     std::vector<std::string> const lPaveTextLines({ 
         Form("%s  %s", collisionSystem.Data(), centString(thEventCutNo)),
         mesDec.data(),
-        "", 
+        //"", // had this empty line here for optical reasons before I included the fitOptions
+        Form("fitOptions: %s", theFitOption.data()), 
         Form("iteration: %d", theRound), 
         Form("%s in %s", theMeson.data(), thEventCutNo.data()),
         theEffiPlotLabel.data()});
@@ -615,29 +637,43 @@ printf("315\n");
     histo1DRatio.GetYaxis()->SetRangeUser(lYmin_ratio,lYmax_ratio);
     histo1DRatio.DrawCopy();
 
-    // this fit over this data
-    TH1* hHistoRatioDataToFit = utils_TH1::DivideTH1ByTF1(
-        *lHistoData, *fit_data, Form("hHistoRatioDataToFit_it%d", theRound), nullptr, false/*integrateFunction*/);
     
     // this mc_mb_nw fit over its histo
     // TH1* hHistoRatioMCMBNWToFit = utils_TH1::DivideTH1ByTF1( // todo: check integreate function yes or no also for data fits!!
     //     *hInvMCYield_mc_mb_nw, *fit_mc_mb_nw, Form("hHistoRatio_mc_mb_nw_ToFit_it%d", theRound), nullptr, false/*integrateFunction*/);
 
     // this mc_mb_nw's exponential interpolation over mc_mb_nw
-    TH1 *hHistoRatioMCMBNWExpInterToHisto = (hInvMCYield_mc_mb_nw && f_exp_inter_mc_mb_nw)
-        ?   utils_TH1::DivideTH1ByTF1( // todo: check integreate function yes or no also for data fits!!
-        *hInvMCYield_mc_mb_nw, *f_exp_inter_mc_mb_nw, 
-         Form("hHistoRatio_mc_mb_nw_expInter_it%d", theRound), nullptr, false/*integrateFunction*/)
-        :   nullptr;
+    // TH1 *hHistoRatioMCMBNWExpInterToHisto = (hInvMCYield_mc_mb_nw && f_exp_inter_mc_mb_nw)
+    //     ?   utils_TH1::DivideTH1ByTF1( // todo: check integreate function yes or no also for data fits!!
+    //     *hInvMCYield_mc_mb_nw, *f_exp_inter_mc_mb_nw, 
+    //      Form("hHistoRatio_mc_mb_nw_expInter_it%d", theRound), nullptr, false/*integrateFunction*/)
+    //     :   nullptr;
+    
+    // this fit over this data
+    TH1* hHistoRatioDataToFit = utils_TH1::DivideTH1ByTF1(
+        *lHistoData_inv, *lFit_data_inv, Form("hHistoRatioDataToFit_it%d", theRound), nullptr, false/*integrateFunction*/);
+    
+    TH1* hHistoRatioDataToFit_int = utils_TH1::DivideTH1ByTF1(
+        lHistoData_var, lFit_data_var, Form("hHistoRatioDataToFit_int%d", theRound), nullptr, true/*integrateFunction*/);
+    
     
     auto *leg4 = utils_plotting::GetLegend(xnew(0.16),0.6,xnew(0.44),0.86);
     DrawGammaLines(lMinPtPlot, lMaxPtPlot ,1., 1., 1, kBlack, 2);
+
     utils_plotting::DrawAndAdd(*hHistoRatioDataToFit, "same", colorFit, 3.0, leg4, "this data over its fit", "l", lLegendTextSize, true);
+    
+    // the int version
+    utils_plotting::DrawAndAdd(*hHistoRatioDataToFit_int, "same", colorFit+2, 3.0, leg4, "data_var_int", "l", lLegendTextSize, true);
+    
+    // the ratio int over old
+    utils_plotting::DrawAndAdd(lRatioFits_int_over_old, "same", colorData, 3.0, leg4, "int_over_old", "l", lLegendTextSize, true);
+    
+    
     // utils_plotting::DrawAndAdd(*hHistoRatioMCMBNWToFit, "same", colorFit+2, 3.0, leg4, "this mb mc over its fit", "l", lLegendTextSize, true);
     
-    if (hHistoRatioMCMBNWExpInterToHisto){
-        utils_plotting::DrawAndAdd(*hHistoRatioMCMBNWExpInterToHisto, "same", colorFit+5, 3.0, leg4, "this mb mc over its exp inter", "l", lLegendTextSize, true);
-    }
+    // if (hHistoRatioMCMBNWExpInterToHisto){
+    //     utils_plotting::DrawAndAdd(*hHistoRatioMCMBNWExpInterToHisto, "same", colorFit+5, 3.0, leg4, "this mb mc over its exp inter", "l", lLegendTextSize, true);
+    // }
     //////////////////////////////////////////////////////////////////////////
     // ratio of this weighted MCs over this data. They differ only as much as this over last true efficiency
     cout << "==================== PAD 5 ===================================\n";
@@ -661,7 +697,7 @@ printf("315\n");
     TFile file_debug("file_debug.root", "update");
     auto &dir = *file_debug.mkdir(lUniqueTag.data());
     dir.cd();
-    lHistoData->Write();
+    lHistoData_inv->Write();
     // get all MC histos from pad1 and calculate ratio to data
     TList* entries = legend_pad1->GetListOfPrimitives();
     for (int i = 0; i < entries->GetEntries(); ++i) {
@@ -673,14 +709,14 @@ printf("315\n");
             if (obj->InheritsFrom("TH1") && std::string(obj->GetName()).find("MC") == 0) {
                 TH1* histoMC = dynamic_cast<TH1*>(obj);
                 if (!histoMC) {continue;}
-                // TH1& histoMC_dataBin = (histoMC->GetNbinsX() == lHistoData->GetNbinsX()) 
+                // TH1& histoMC_dataBin = (histoMC->GetNbinsX() == lHistoData_inv->GetNbinsX()) 
                 //     ? *histoMC 
-                //     : *utils_TH1::RebinInvariantYieldHistogram(*histoMC, *lHistoData, "rebInv"); 
-                // printf("SFS dividing MC %s by data %s\n", histoMC_dataBin.GetName(), lHistoData->GetName());
+                //     : *utils_TH1::RebinInvariantYieldHistogram(*histoMC, *lHistoData_inv, "rebInv"); 
+                // printf("SFS dividing MC %s by data %s\n", histoMC_dataBin.GetName(), lHistoData_inv->GetName());
                 
                 // divide by datafit
                 TH1 &ratioMCtoFit = *utils_TH1::DivideTH1ByTF1(
-                    *histoMC, *fit_data, nullptr, nullptr, true /*theIntegrateTF1*/);                
+                    *histoMC, *lFit_data_inv, nullptr, nullptr, true /*theIntegrateTF1*/);                
 
                 utils_plotting::DrawAndAdd(
                     ratioMCtoFit, "same", histoMC->GetLineColor(), 3.0, 
@@ -743,7 +779,7 @@ printf("315\n");
     };
 
     TFile* hfile = new TFile(Form("%s/MCSpectraInputPbPb_Stephan_it%d.root", theDir.data(), theRound), "UPDATE");  
-    saveDataFit_withProperName(*fit_data);  
+    saveDataFit_withProperName(*lFit_data_inv);  
 
     for (TH1 const *h : vInvMCYields_wow){
         if (!h){

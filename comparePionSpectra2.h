@@ -78,26 +78,26 @@ void setMarginsToZero(TVirtualPad& vpad);
         from this histo. Compare then to the one in the normal data output file.*/
 void comparePionSpectra2(){
 
-    tVPars vPi0_101 = {{"oHag", "FM", "efficiency from MB"},                    // 0
-                       {"tcmDoublePow", "FM", "efficiency from MB + ASh"},      // 1
-                       {"tcmDoublePow", "FM", "efficiency from MB + (ASl&ASh)"},// 2
-                       {"tcmDoublePow", "FM", "efficiency from MB + (ASl&ASh)"},// 3
-                       {"tcmDoublePow", "FM", "efficiency from MB + ASh + ASl"},// 4
-                       {"tcmDoublePow", "FM", "efficiency from MB + ASh + ASl"},// 5
-                       {"tcmDoublePow", "FM", "efficiency from MB + ASh + ASl"},// 6
+    tVPars vPi0_101 = {{"oHag",         "FM", "efficiency from MB"},             // 0
+                       {"tcmDoublePow", "FM", "efficiency from MB + ASh"},       // 1
+                       {"tcmDoublePow", "FM", "efficiency from MB + (ASl&ASh)"}, // 2
+                       {"tcmDoublePow", "FM", "efficiency from MB + (ASl&ASh)"}, // 3
+                       {"tcmDoublePow", "FM", "efficiency from MB + ASh + ASl"}, // 4
+                       {"tcmDoublePow", "FM", "efficiency from MB + ASh + ASl"}, // 5
+                       {"tcmDoublePow", "FM", "efficiency from MB + ASh + ASl"}, // 6
                        {"tcmDoublePow", "FM", "efficiency from MB + ASh + ASl"}, // 7
-                       {"tcmDoublePow", "FM", "efficiency from MB + ASh + ASl"} // 8
+                       {"tcmDoublePow", "FMN0", "efficiency from MB + ASh + ASl"}  // 8
                       };
     
-    tVPars vPi0_135 = {{"oHag", "EX0FM", "efficiency from MB"},
-                       {"oHag", "EX0FM", "efficiency from MB + ASh"},
+    tVPars vPi0_135 = {{"oHag",         "EX0FM", "efficiency from MB"},
+                       {"oHag",         "EX0FM", "efficiency from MB + ASh"},
                        {"tcmDoublePow", "FM", "efficiency from MB + (ASl&ASh)"},
                        {"tcmDoublePow", "FM", "efficiency from MB + (ASl&ASh)"},
                        {"tcmDoublePow", "FM", "efficiency from MB + ASh + ASl"},
                        {"tcmDoublePow", "FM", "efficiency from MB + ASh + ASl"},
                        {"tcmDoublePow", "FM", "efficiency from MB + ASh + ASl"},
                        {"tcmDoublePow", "FM", "efficiency from MB + ASh + ASl"},
-                       {"tcmDoublePow", "FM", "efficiency from MB + ASh + ASl"}
+                       {"tcmDoublePow", "FMN0", "efficiency from MB + ASh + ASl"}
                       };
 
     tVPars vEta_101 = {{"oHag", "EX0FM", "efficiency from MB"},
@@ -108,10 +108,10 @@ void comparePionSpectra2(){
                        {"oHag", "EX0FM", "efficiency from MB + ASh + ASl"},
                        {"oHag", "EX0FM", "efficiency from MB + ASh + ASl"},
                        {"oHag", "EX0FM", "efficiency from MB + ASh + ASl"},
-                       {"oHag", "EX0FM", "efficiency from MB + ASh + ASl"}
+                       {"oHag", "N0FM", "efficiency from MB + ASh + ASl"}
                       };
 
-    tVPars vEta_135 = {{"oHag", "EX0FM", "efficiency from MB"},
+    tVPars vEta_135 = {{"oHag",         "EX0FM", "efficiency from MB"},
                        {"tcmDoublePow", "FM", "efficiency from MB + ASh"},
                        {"tcmDoublePow", "FM", "efficiency from MB + (ASl&ASh)"},
                        {"tcmDoublePow", "FM", "efficiency from MB + (ASl&ASh)"},
@@ -119,7 +119,7 @@ void comparePionSpectra2(){
                        {"tcmDoublePow", "FM", "efficiency from MB + ASh + ASl"},
                        {"tcmDoublePow", "FM", "efficiency from MB + ASh + ASl"},
                        {"tcmDoublePow", "FM", "efficiency from MB + ASh + ASl"},
-                       {"tcmDoublePow", "FM", "efficiency from MB + ASh + ASl"}
+                       {"oHag", "N0FM", "efficiency from MB + ASh + ASl"}
                       };
     
     std::map<std::string, tVPars const&> lMap_mesonCent_params;
@@ -162,14 +162,14 @@ void comparePionSpectra2(){
     float lRightMargin = 0.02;
 
     // run one config
-    // doMultiRound(lMapBaseDirs, "Pi0", "10130e03", lMap_mesonCent_params, lRounds,
+    // doMultiRound(lMapBaseDirs, "Pi0", "13530e03", lMap_mesonCent_params, lRounds,
     //              lLeftMargin/*theLeftMargin*/, lRightMargin/*theRightMargin*/, lDir);
-    // doMultiRound(lMapBaseDirs, "Eta", "10130e03", lMap_mesonCent_params, lRounds,
-    //              lLeftMargin/*theLeftMargin*/, lRightMargin/*theRightMargin*/, lDir);
-    
-    //  return;
+    // return;
+    // doMultiRound(lMapBaseDirs, "Eta", "13530e03", lMap_mesonCent_params, lRounds,
+    // lLeftMargin/*theLeftMargin*/, lRightMargin/*theRightMargin*/, lDir);
+    // return;
 
-    // for (auto meson : std::vector<std::string>{"Eta"}){
+    // for (auto meson : std::vector<std::string>{"Pi0"}){
     for (auto meson : std::vector<std::string>{"Pi0", "Eta"}){
         for (auto evtcut : std::vector<std::string>{"10130e03", "13530e03"}){
             printf("%s %s\n", meson.data(), evtcut.data());
