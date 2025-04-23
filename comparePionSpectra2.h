@@ -58,7 +58,9 @@ TCanvas*
                            double theLeftMargin=0.25,
                            double theRightMargin=0.05,
                            bool verticallyTight=true,
-                           std::string theDir="");
+                           std::string theDir="",
+                           Double_t *theMinPtFit=nullptr,
+                           Double_t *theMaxPtFit=nullptr);
 
 void setMarginsToZero(TVirtualPad& vpad);
 
@@ -144,8 +146,8 @@ void comparePionSpectra2(){
 
     // std::vector<int> lRounds{0, 2, 3, 4, 5, 6, 7};
     // std::vector<int> lRounds{ 2, 3, 4, 5, 7, 8};
-    std::vector<int> lRounds{6, 7, 8};
-    // std::vector<int> lRounds{8};
+    // std::vector<int> lRounds{6, 7, 8};
+    std::vector<int> lRounds{8};
 
     // create meaningfull id and directory to write into
     // std::string lID(Form("%d_%d_", TDatime().GetDate(), TDatime().GetTime()));
@@ -169,7 +171,6 @@ void comparePionSpectra2(){
 
     // for (auto meson : std::vector<std::string>{"Eta"}){
     for (auto meson : std::vector<std::string>{"Pi0", "Eta"}){
-        // for (auto evtcut : std::vector<std::string>{"10130e03", "13530e03"}){
         for (auto evtcut : std::vector<std::string>{"10130e03", "13530e03"}){
             printf("%s %s\n", meson.data(), evtcut.data());
             doMultiRound(lMapBaseDirs, 

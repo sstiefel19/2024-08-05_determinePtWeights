@@ -72,6 +72,14 @@ void doMultiRound(std::map<int, std::string> const &theMapBaseDirs,
     for (size_t iPos = 0; iPos < nCols; ++iPos){    
         bool isLast = iPos == nCols-1;
         int theRound = theRounds[iPos];
+
+        bool isRoundAndPi0 = (theRound==8) && (theMeson=="Pi0");
+        bool is_0010 = isRoundAndPi0 && (theCent=="10130e03");
+        bool is_3050 = isRoundAndPi0 && (theCent=="13530e03");
+        
+        Double_t lXminFit = is_0010 ?  0.6 : 0.;
+        Double_t lXmaxFit = 0.;
+
         TCanvas* cNx1_i = 
             fitMesonAndWriteToFile(
                 theMapBaseDirs,   
@@ -85,7 +93,9 @@ void doMultiRound(std::map<int, std::string> const &theMapBaseDirs,
                 !iPos  ? theLeftMargin : 0 /*theLeftMargin*/,
                 isLast ? theRightMargin : 0. /*theRightMargin*/,
                 true /*verticallyTight*/,
-                theDir);
+                theDir,
+                lXminFit ? &lXminFit : nullptr,
+                lXmaxFit ? &lXmaxFit : nullptr);
 
         lPads[iPos+1]->cd();
         cNx1_i->DrawClonePad();
@@ -105,10 +115,12 @@ TCanvas*
                            std::string theFitOption, 
                            std::string theEffiPlotLabel, 
                            size_t thePlotWidth,
-                           double theLeftMargin/*=0.25*/,
-                           double theRightMargin/*=0.05*/,
-                           bool verticallyTight/*=true*/,
-                           std::string theDir/*=""*/){
+                           double theLeftMargin  /*=0.25*/,
+                           double theRightMargin /*=0.05*/,
+                           bool verticallyTight  /*=true*/,
+                           std::string theDir    /*=""*/,
+                           Double_t *theMinPtFit /*=nullptr*/,
+                           Double_t *theMaxPtFit /*=nullptr*/){
 
     // ============================================================
     // 1) retrieve all filenames, histos, and information
@@ -119,8 +131,11 @@ TCanvas*
     bool isPi0 = theMeson == "Pi0";
     bool isCentral = thEventCutNo.substr(0, 3) == "101";
 
-    Double_t minPtPlot  = isPi0 ?  0.3 : .9;
-    Double_t maxPtPlot  = isPi0 ? 30.0 : 14.0;
+    Double_t lMinPtPlot  = isPi0 ?  0.3 : .9;
+    Double_t lMaxPtPlot  = isPi0 ? 30.0 : 14.0;
+
+    Double_t lMinPtFit = theMinPtFit ? *theMinPtFit : lMinPtPlot; 
+    Double_t lMaxPtFit = theMaxPtFit ? *theMaxPtFit : lMaxPtPlot; 
 
     Double_t lYmin_ratio{isPi0 ? 0.7 : 0.7};
     Double_t lYmax_ratio{isPi0 ? 1.3 : 1.3};
@@ -319,18 +334,18 @@ printf("291\n");
     // 2) ======================= do this iterations fit =================================
     std::string fit_data_name(Form("%s_Data_5TeV_%s0_it%d", theMeson.data(), thEventCutNo.substr(0,5).data(), theRound)); // need the it in the name here so we dont get many  objects with the same name when doing more than one it
     printf("306 theFitFunction.data() = %s\n", theFitFunction.data());
-    TF1* fit_data = FitObject(theFitFunction.data(), fit_data_name.data(), theMeson.data(), NULL, minPtPlot, maxPtPlot);            
+    TF1* fit_data = FitObject(theFitFunction.data(), fit_data_name.data(), theMeson.data(), NULL, lMinPtPlot, lMaxPtPlot);            
     TGraphAsymmErrors* graphYield_data = new TGraphAsymmErrors(lHistoData);
     
 printf("310\n");
-    graphYield_data->Fit(fit_data, theFitOption.data(), "", minPtPlot, maxPtPlot);
+    graphYield_data->Fit(fit_data, theFitOption.data(), "", lMinPtFit, lMaxPtFit);
 printf("295\n");
 printf("\n");
     // 2.1) fit minimum bias MC
     // std::string fit_mc_mb_name(Form("%s_LHC20e3a_5TeV_%s_it%d", theMeson.data(), thEventCutNo.substr(0,5).data(), theRound)); // need the it in the name here so we dont get many  objects with the same name when doing more than one it
-    // TF1* fit_mc_mb_nw = FitObject(theFitFunction.data(), fit_mc_mb_name.data(), theMeson.data(), NULL, minPtPlot, maxPtPlot);            
+    // TF1* fit_mc_mb_nw = FitObject(theFitFunction.data(), fit_mc_mb_name.data(), theMeson.data(), NULL, lMinPtPlot, lMaxPtPlot);            
     // TGraphAsymmErrors* graphYield_mc_mb = new TGraphAsymmErrors(hInvMCYield_mc_mb_nw);
-    // graphYield_mc_mb->Fit(fit_mc_mb_nw, theFitOption.data(), "", minPtPlot, maxPtPlot);
+    // graphYield_mc_mb->Fit(fit_mc_mb_nw, theFitOption.data(), "", lMinPtFit, lMaxPtFit);
 
     // 2.2 try local exponential interpolations
     TF1 *f_exp_inter_mc_mb_nw = hInvMCYield_mc_mb_nw
@@ -383,7 +398,7 @@ printf("315\n");
     // fit data and plot both together
     cout << "============================= pad 1 ===========================================\n";
     auto &pad1 = *getNextTab();    
-    TH1F &histo1DSpectra = *new TH1F("histo1DSpectra", "histo1DSpectra",1000, minPtPlot, maxPtPlot);
+    TH1F &histo1DSpectra = *new TH1F("histo1DSpectra", "histo1DSpectra",1000, lMinPtPlot, lMaxPtPlot);
     SetStyleHistoTH1ForGraphs( 
         &histo1DSpectra, 
         "#it{p}_{T} (GeV/#it{c})", 
@@ -401,7 +416,7 @@ printf("315\n");
         histo1DSpectra.GetYaxis()->SetLabelOffset(0.01);
     }
     
-    histo1DSpectra.GetXaxis()->SetRangeUser(minPtPlot, maxPtPlot);
+    histo1DSpectra.GetXaxis()->SetRangeUser(lMinPtPlot, lMaxPtPlot);
     histo1DSpectra.GetYaxis()->SetRangeUser(1E-8, 5E3);
     histo1DSpectra.DrawCopy();
 
@@ -457,7 +472,7 @@ printf("315\n");
     if (lastItFit){
         utils_plotting::DrawAndAdd(*lastItFit, "same", kBlue, 3.0, legend_pad1, "last Fit", "l", lLegendTextSize, true);
     }
-    fit_data->SetRange(minPtPlot, maxPtPlot);
+    fit_data->SetRange(lMinPtPlot, lMaxPtPlot);
     // utils_plotting::DrawAndAdd(*fit_data,     "same", colorFit, 3.0, legend_pad1, "Fit Data", "l", lLegendTextSize, true);
     // utils_plotting::DrawAndAdd(*fit_mc_mb_nw, "same", colorFit+2, 3.0, legend_pad1, "Fit MC MB NW", "l", lLegendTextSize, true);
     
@@ -496,7 +511,7 @@ printf("315\n");
     cout << "==================== PAD 2 ===================================\n";
     auto &pad2 = *getNextTab();
 
-    TH1F &histo1DRatio = *new TH1F("histo1DRatio", "histo1DRatio",1000, minPtPlot, maxPtPlot);
+    TH1F &histo1DRatio = *new TH1F("histo1DRatio", "histo1DRatio",1000, lMinPtPlot, lMaxPtPlot);
     SetStyleHistoTH1ForGraphs(
         &histo1DRatio, 
         "#it{p}_{T} (GeV/#it{c})", 
@@ -509,7 +524,7 @@ printf("315\n");
         lRatioYtitleOffsets);  // yTitleOffset
     
     histo1DRatio.GetXaxis()->SetLabelOffset(-0.01);
-    histo1DRatio.GetXaxis()->SetRangeUser(minPtPlot, maxPtPlot);
+    histo1DRatio.GetXaxis()->SetRangeUser(lMinPtPlot, lMaxPtPlot);
     histo1DRatio.GetYaxis()->SetLabelOffset(0.01);
     histo1DRatio.GetYaxis()->CenterTitle(true);
     histo1DRatio.GetYaxis()->SetRangeUser(lYmin_ratio_pad2, lYmax_ratio_pad2);        
@@ -558,7 +573,7 @@ printf("315\n");
             // utils_plotting::DrawAndAdd(f_ratio_mc_expInter_over_lastItFit, "same", histoMC->GetLineColor(), 3.0); 
         }
     }    
-    DrawGammaLines(minPtPlot, maxPtPlot ,1., 1., 1, kBlack, 2);
+    DrawGammaLines(lMinPtPlot, lMaxPtPlot ,1., 1., 1, kBlack, 2);
 
     //////////////////////////////////////////////////////////////////////////
     // compare this effi to previous effis
@@ -587,7 +602,7 @@ printf("315\n");
                                                             "EffiOverLastEffi");
         // utils_TH1::PrintBinsWithErrors(*lEffiOverEffiLast);
 
-        DrawGammaLines(minPtPlot, maxPtPlot ,1., 1., 1, kBlack, 2);
+        DrawGammaLines(lMinPtPlot, lMaxPtPlot ,1., 1., 1, kBlack, 2);
         lEffiOverEffiLast->Draw("same");
     }
 
@@ -616,7 +631,7 @@ printf("315\n");
         :   nullptr;
     
     auto *leg4 = utils_plotting::GetLegend(xnew(0.16),0.6,xnew(0.44),0.86);
-    DrawGammaLines(minPtPlot, maxPtPlot ,1., 1., 1, kBlack, 2);
+    DrawGammaLines(lMinPtPlot, lMaxPtPlot ,1., 1., 1, kBlack, 2);
     utils_plotting::DrawAndAdd(*hHistoRatioDataToFit, "same", colorFit, 3.0, leg4, "this data over its fit", "l", lLegendTextSize, true);
     // utils_plotting::DrawAndAdd(*hHistoRatioMCMBNWToFit, "same", colorFit+2, 3.0, leg4, "this mb mc over its fit", "l", lLegendTextSize, true);
     
@@ -681,7 +696,7 @@ printf("315\n");
         }
     }
     file_debug.Close();    
-    DrawGammaLines(minPtPlot, maxPtPlot ,1., 1., 1, kBlack, 2);
+    DrawGammaLines(lMinPtPlot, lMaxPtPlot ,1., 1., 1, kBlack, 2);
         
     cout << "================= saving to file and pdfs ========================\n";
     std::string lSinglesDir(theDir + "/singles");
