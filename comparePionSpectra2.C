@@ -77,7 +77,7 @@ void doMultiRound(std::map<int, std::string> const &theMapBaseDirs,
         // bool is_0010 = isRoundAndPi0 && (theCent=="10130e03");
         // bool is_3050 = isRoundAndPi0 && (theCent=="13530e03");
         
-        Double_t lXminFit = isPi0 ?  0.6 : 0.;
+        Double_t lXminFit = isPi0 ?  0.6 : 0.; // exclude 0.4-0.6GeV/c bin
         Double_t lXmaxFit = isPi0 ? 25 : 0.;
 
         TCanvas* cNx1_i = 
@@ -115,12 +115,13 @@ TCanvas*
                            std::string theFitOption, 
                            std::string theEffiPlotLabel, 
                            size_t thePlotWidth,
-                           double theLeftMargin  /*=0.25*/,
-                           double theRightMargin /*=0.05*/,
-                           bool verticallyTight  /*=true*/,
-                           std::string theDir    /*=""*/,
-                           Double_t *theMinPtFit /*=nullptr*/,
-                           Double_t *theMaxPtFit /*=nullptr*/){
+                           double theLeftMargin  /* = 0.25*/,
+                           double theRightMargin /* = 0.05*/,
+                           bool verticallyTight  /* = true*/,
+                           std::string theDir    /* = ""*/,
+                           Double_t *theMinPtFit /* = nullptr*/,
+                           Double_t *theMaxPtFit /* = nullptr*/,
+                           bool      theSaveDNDPT /* = false*/){
 
     // ============================================================
     // 1) retrieve all filenames, histos, and information
@@ -137,8 +138,8 @@ TCanvas*
     Double_t lMinPtFit = theMinPtFit ? *theMinPtFit : lMinPtPlot; 
     Double_t lMaxPtFit = theMaxPtFit ? *theMaxPtFit : lMaxPtPlot; 
 
-    Double_t lYmin_ratio{isPi0 ? 0.7 : 0.7};
-    Double_t lYmax_ratio{isPi0 ? 1.3 : 1.3};
+    Double_t lYmin_ratio{isPi0 ? 0.8 : 0.7};
+    Double_t lYmax_ratio{isPi0 ? 1.2 : 1.3};
 
     Double_t lYmin_ratio_pad2{isPi0 ? 0.9 : 0.9};
     Double_t lYmax_ratio_pad2{isPi0 ? 1.1 : 1.1};
@@ -187,7 +188,7 @@ TCanvas*
         // default trainconfigs
         // mb 994, pi0 997 eta 995
         std::string lConfig(lIsMB 
-            // ? isCentral 
+            // ? isCentral  // had those for testing purposes: these configs were without exp inter
             //     ? "5100"
             //     : "5130" 
             ? "994" 
@@ -225,14 +226,18 @@ printf("line 179\n");
         std::string weightsTag(theWoWeights.size() ? "WOW" : "WW");
         std::string mcTag(Form("%s", lIsMB ? "MB" : asTag.data()));
         std::string lNewHistoName(Form("MC_%s_%s", mcTag.data(), weightsTag.data()));
-        std::string lHistoTitleForLeg(Form("MC %s", mcTag.data()));
+        std::string lHistoTitleOnly(Form("MC %s", mcTag.data()));
+        std::string lHistoTitle_wAxisCaptions(lHistoTitleOnly 
+                    + ";pT (GeV/c);#frac{1}{2#pi N_ev pT} #frac{d^2 N}{dpT dy}"); 
+            
         std::string abac((theRound>7) ?
               "MBabc"
             : isCentral ? 
                 "ab" 
               : "ac");
 
-        printf("SFS 208: theRound, theMBAS.data(), asTag.data(), weightsTag.data(), mcTag.data(), lNewHistoName.data(), lIsMB, lIsAS2 :\n\t %d %s %s %s %s %s %d %d\n", theRound, theMBAS.data(), asTag.data(), weightsTag.data(), mcTag.data(), lNewHistoName.data(), lIsMB, lIsAS2);
+        printf("SFS 208: theRound, theMBAS.data(), asTag.data(), weightsTag.data(), mcTag.data(), lNewHistoName.data(), lIsMB, lIsAS2 :\n\t %d %s %s %s %s %s %d %d\n", 
+            theRound, theMBAS.data(), asTag.data(), weightsTag.data(), mcTag.data(), lNewHistoName.data(), lIsMB, lIsAS2);
                
         std::string lTrainSubDir(lIsMB 
             ? (theRound<2)              // isMB &&
@@ -262,7 +267,7 @@ printf("line 179\n");
         std::string lMainDir(Form("GammaConvV1_%s/", lConfig.data()));
         std::string lEventCutNo(lIsMB ? eventCutNoMC : eventCutNoMCAdd);
         GCo lGCo(Form("%s/trains/%s/%s",
-                    theMapBaseDirs.at(theRound).data(), lTrainSubDir.data(),lFname.data()),
+                      theMapBaseDirs.at(theRound).data(), lTrainSubDir.data(),lFname.data()),
                 lMainDir,
                 lEventCutNo,
                 lPhotMesCutNo,
@@ -274,7 +279,9 @@ printf("line 179\n");
         TH1* hInvYield_WW = lHistoMesonInRap 
             ? utils_computational::TranformD2DPtDYYieldToInvariantYield(
                 *utils_TH1::DivideTH1ByBinWidths(*lHistoMesonInRap, "divW", nullptr, nullptr),
-                "inv", lNewHistoName.data(), lHistoTitleForLeg.data(), 
+                nullptr, 
+                lNewHistoName.data(), 
+                lHistoTitle_wAxisCaptions.data(), 
                 1./(nEvents*1.6*lMeson2GammaBR)) // 1.6 = deltaY
             : nullptr;
         return hInvYield_WW;
@@ -314,6 +321,12 @@ printf("269\n");
     TH1 *hInvMCYield_mc_mb_nw = vInvMCYields_wow.size() 
         ?  vInvMCYields_wow.at(0) 
         : static_cast<TH1*>(nullptr);
+
+    TH1 *hVarMCYield_mc_mb_nw = hInvMCYield_mc_mb_nw 
+        ?  utils_computational::TranformInvariantYieldToD2DPtDY(*hInvMCYield_mc_mb_nw)
+        :  static_cast<TH1*>(nullptr);
+
+
 printf("274\n");
     
     // get fit and histo from last iteration
@@ -358,18 +371,24 @@ std::string fit_data_inv_name(Form("%s_Data_5TeV_%s0_it%d", theMeson.data(), thE
 printf("295\n");
 printf("\n");
     // 2.1) fit minimum bias MC
-    // std::string fit_mc_mb_name(Form("%s_LHC20e3a_5TeV_%s_it%d", theMeson.data(), thEventCutNo.substr(0,5).data(), theRound)); // need the it in the name here so we dont get many  objects with the same name when doing more than one it
-    // TF1* fit_mc_mb_nw = FitObject(theFitFunction.data(), fit_mc_mb_name.data(), theMeson.data(), NULL, lMinPtPlot, lMaxPtPlot);            
-    // TGraphAsymmErrors* graphYield_mc_mb = new TGraphAsymmErrors(hInvMCYield_mc_mb_nw);
-    // graphYield_mc_mb->Fit(fit_mc_mb_nw, theFitOption.data(), "", lMinPtFit, lMaxPtFit);
-
-    // 2.2 try local exponential interpolations
-    TF1 *f_exp_inter_mc_mb_nw = hInvMCYield_mc_mb_nw
+ 
+    // 2.2 try local exponential interpolations for MB MC inv
+    TF1 *f_hInvMCYield_mb_nw_exp_inter = hInvMCYield_mc_mb_nw
         ?  &utils_TH1::GlobalPieceWiseExponentialInterpolation(
               Form("%s_exp_inter", 
                    hInvMCYield_mc_mb_nw->GetName()),
               *hInvMCYield_mc_mb_nw)
         : static_cast<TF1*>(nullptr);
+    
+    // same for MB MC var
+    TF1 *f_hVarMCYield_mb_nw_exp_inter = hVarMCYield_mc_mb_nw
+        ?  &utils_TH1::GlobalPieceWiseExponentialInterpolation(
+              Form("%s_exp_inter", 
+                   hVarMCYield_mc_mb_nw->GetName()),
+              *hVarMCYield_mc_mb_nw)
+        : static_cast<TF1*>(nullptr);
+
+    
 printf("315\n");
 
     // 3) ========================= plotting =============================================
@@ -489,9 +508,8 @@ printf("315\n");
     if (lastItFit){
         utils_plotting::DrawAndAdd(*lastItFit, "same", kBlue, 3.0, legend_pad1, "last Fit", "l", lLegendTextSize, true);
     }
-    // utils_plotting::DrawAndAdd(*lFit_data_inv,     "same", colorFit, 3.0, legend_pad1, "Fit Data", "l", lLegendTextSize, true);
-    // utils_plotting::DrawAndAdd(*fit_mc_mb_nw, "same", colorFit+2, 3.0, legend_pad1, "Fit MC MB NW", "l", lLegendTextSize, true);
-    // utils_plotting::DrawAndAdd(*f_exp_inter_mc_mb_nw, "same", colorFit+2, 3.0, legend_pad1, "exp inter MC MB NW", "l", lLegendTextSize, true);
+
+    utils_plotting::DrawAndAdd(*f_hInvMCYield_mb_nw_exp_inter, "same", colorFit+2, 2.0, legend_pad1, "MC MB NW exp inter ", "l", lLegendTextSize, true);
     
     utils_plotting::DrawAndAdd(*lFit_data_inv, "same", colorFit, 3.0, legend_pad1, "Fit Data inv", "l", lLegendTextSize, true);
     utils_plotting::DrawAndAdd(lHistoData_var, "same", colorData+2, 1., legend_pad1, "lHistoData_var", "lep", lLegendTextSize, true, kCircle, 1.);
@@ -577,9 +595,9 @@ printf("315\n");
             }
             TH1* histoMC = dynamic_cast<TH1*>(obj);
             if (!histoMC) {continue;}
-            TH1 &hHistoRatioToFit = *utils_TH1::DivideTH1ByTF1(*histoMC, *lastItFit, nullptr, nullptr, kTRUE /*theIntegrateTF1*/);
-            hHistoRatioToFit.SetName(Form("%s_mover_%s", histoMC->GetName(), lastItFit->GetName()));
-            utils_plotting::DrawAndAdd(hHistoRatioToFit, "same", histoMC->GetLineColor(), 1.0, leg2, entry->GetLabel(), "lp", lLegendTextSize);
+            TH1 &hRatioToFit = *utils_TH1::DivideTH1ByTF1(*histoMC, *lastItFit, nullptr, nullptr, kTRUE /*theIntegrateTF1*/);
+            hRatioToFit.SetName(Form("%s_mover_%s", histoMC->GetName(), lastItFit->GetName()));
+            utils_plotting::DrawAndAdd(hRatioToFit, "same", histoMC->GetLineColor(), 1.0, leg2, entry->GetLabel(), "lp", lLegendTextSize);
 
             // also plot ratio of histoMC_expInter over lastItFit
             // TF1 &f_mc_expInter = utils_TH1::GlobalPieceWiseExponentialInterpolation(
@@ -637,43 +655,58 @@ printf("315\n");
     histo1DRatio.GetYaxis()->SetRangeUser(lYmin_ratio,lYmax_ratio);
     histo1DRatio.DrawCopy();
 
-    
-    // this mc_mb_nw fit over its histo
-    // TH1* hHistoRatioMCMBNWToFit = utils_TH1::DivideTH1ByTF1( // todo: check integreate function yes or no also for data fits!!
-    //     *hInvMCYield_mc_mb_nw, *fit_mc_mb_nw, Form("hHistoRatio_mc_mb_nw_ToFit_it%d", theRound), nullptr, false/*integrateFunction*/);
-
-    // this mc_mb_nw's exponential interpolation over mc_mb_nw
-    // TH1 *hHistoRatioMCMBNWExpInterToHisto = (hInvMCYield_mc_mb_nw && f_exp_inter_mc_mb_nw)
-    //     ?   utils_TH1::DivideTH1ByTF1( // todo: check integreate function yes or no also for data fits!!
-    //     *hInvMCYield_mc_mb_nw, *f_exp_inter_mc_mb_nw, 
-    //      Form("hHistoRatio_mc_mb_nw_expInter_it%d", theRound), nullptr, false/*integrateFunction*/)
-    //     :   nullptr;
-    
     // this fit over this data
-    TH1* hHistoRatioDataToFit = utils_TH1::DivideTH1ByTF1(
-        *lHistoData_inv, *lFit_data_inv, Form("hHistoRatioDataToFit_it%d", theRound), nullptr, false/*integrateFunction*/);
+    TH1* hRatioDataToFit = utils_TH1::DivideTH1ByTF1(
+        *lHistoData_inv, *lFit_data_inv, Form("hRatioDataToFit_it%d", theRound), nullptr, false/*integrateFunction*/);
     
-    TH1* hHistoRatioDataToFit_int = utils_TH1::DivideTH1ByTF1(
-        lHistoData_var, lFit_data_var, Form("hHistoRatioDataToFit_int%d", theRound), nullptr, true/*integrateFunction*/);
+    TH1* hRatioDataToFit_int = utils_TH1::DivideTH1ByTF1(
+        lHistoData_var, lFit_data_var, Form("hRatioDataToFit_int%d", theRound), nullptr, true/*integrateFunction*/);
     
     
     auto *leg4 = utils_plotting::GetLegend(xnew(0.16),0.6,xnew(0.44),0.86);
     DrawGammaLines(lMinPtPlot, lMaxPtPlot ,1., 1., 1, kBlack, 2);
 
-    utils_plotting::DrawAndAdd(*hHistoRatioDataToFit, "same", colorFit, 3.0, leg4, "this data over its fit", "l", lLegendTextSize, true);
+    utils_plotting::DrawAndAdd(*hRatioDataToFit, "same", colorFit, 3.0, leg4, "this data over its fit", "l", lLegendTextSize, true);
     
     // the int version
-    utils_plotting::DrawAndAdd(*hHistoRatioDataToFit_int, "same", colorFit+2, 3.0, leg4, "data_var_int", "l", lLegendTextSize, true);
+    utils_plotting::DrawAndAdd(*hRatioDataToFit_int, "same", colorFit+2, 3.0, leg4, "data_var_int", "l", lLegendTextSize, true);
     
     // the ratio int over old
     utils_plotting::DrawAndAdd(lRatioFits_int_over_old, "same", colorData, 3.0, leg4, "int_over_old", "l", lLegendTextSize, true);
+
+    // QA PLOTS 1:
+    // show quality of exp inter for MC MB nw inv yield
+    // this mc_mb_nw_invYields's exponential interpolation over the histo itself
+    TH1 *hQualityExpInter_mc_mb_nw_inv = (f_hInvMCYield_mb_nw_exp_inter && hInvMCYield_mc_mb_nw)
+        ?   utils_computational::DivideTF1ByTH1( 
+                *f_hInvMCYield_mb_nw_exp_inter, 
+                *hInvMCYield_mc_mb_nw, 
+                 Form("hQualityExpInter_%s_%d", 
+                      f_hInvMCYield_mb_nw_exp_inter->GetName(), theRound), 
+                 "hQualityExpInter_mb_nw_inv", true/*integrateFunction*/)
+        :   nullptr;
     
+    if (hQualityExpInter_mc_mb_nw_inv){
+        utils_plotting::DrawAndAdd(*hQualityExpInter_mc_mb_nw_inv, "same", colorFit+5, 1.0, 
+            leg4, "this MB_NW_inv_expInter over its histo", "lep", lLegendTextSize, true);
+    }
+
+    // QA PLOTS 2:
+    // show quality of exp inter for MC MB nw var yield
+    // this mc_mb_nw_varYields's exponential interpolation over the histo itself
+    TH1 *hQualityExpInter_mc_mb_nw_var = (f_hVarMCYield_mb_nw_exp_inter && hVarMCYield_mc_mb_nw)
+        ?   utils_computational::DivideTF1ByTH1( 
+                *f_hVarMCYield_mb_nw_exp_inter, 
+                *hVarMCYield_mc_mb_nw, 
+                 Form("hQualityExpInter_%s_%d", 
+                      f_hVarMCYield_mb_nw_exp_inter->GetName(), theRound), 
+                 "hQualityExpInter_mb_nw_var", true/*integrateFunction*/)
+        :   nullptr;
     
-    // utils_plotting::DrawAndAdd(*hHistoRatioMCMBNWToFit, "same", colorFit+2, 3.0, leg4, "this mb mc over its fit", "l", lLegendTextSize, true);
-    
-    // if (hHistoRatioMCMBNWExpInterToHisto){
-    //     utils_plotting::DrawAndAdd(*hHistoRatioMCMBNWExpInterToHisto, "same", colorFit+5, 3.0, leg4, "this mb mc over its exp inter", "l", lLegendTextSize, true);
-    // }
+    if (hQualityExpInter_mc_mb_nw_var){
+        utils_plotting::DrawAndAdd(*hQualityExpInter_mc_mb_nw_var, "same", colorFit+7, 1.0, 
+            leg4, "this MB_NW_var_expInter over its histo", "lep", lLegendTextSize, true);
+    }
     //////////////////////////////////////////////////////////////////////////
     // ratio of this weighted MCs over this data. They differ only as much as this over last true efficiency
     cout << "==================== PAD 5 ===================================\n";
@@ -740,59 +773,80 @@ printf("315\n");
     cOneIt.SaveAs(Form("%s/%s_%s_it%d.pdf", lSinglesDir.data(), thEventCutNo.data(), theMeson.data(), theRound));
     
     // save to file
-    // saves the datafit Pi0_Data_5TeV_101300_it8 without the _it8 (for instance)
-    auto saveDataFit_withProperName = [](TObject const &theO){
-        std::string lNewName(theO.GetName());
-        size_t lPosI = lNewName.rfind("_it");
-        if (lPosI != std::string::npos){
-            lNewName.replace(lPosI, lNewName.size(), "");
-        }
-        theO.Write(lNewName.data());
-        printf("Info: saveDataFit_withProperName(): saved %s as %s\n",
-               theO.GetName(), lNewName.data());
-    };
+    auto saveAllToWeightsFile = [&](bool theSaveDNDPT){
+        // saves the datafit Pi0_Data_5TeV_101300_it8 without the _it8 (for instance)
+        auto saveDataFit_withProperName = [](TObject const &theO){
+            std::string lNewName(theO.GetName());
+            size_t lPosI = lNewName.rfind("_it");
+            if (lPosI != std::string::npos){
+                lNewName.replace(lPosI, lNewName.size(), "");
+            }
+            theO.Write(lNewName.data());
+            printf("Info: saveDataFit_withProperName(): saved %s as %s\n",
+                theO.GetName(), lNewName.data());
+        };
     
-    auto saveMC_withProperName = [&](TObject const &theO){
-        std::string s(theO.GetName());
-        s = s.substr(3, 3);
-        std::string mcId((s=="MB_")
-                ? "LHC20e3a"
-                : (s=="ASh")
-                    ? "LHC20g10"
-                    : "LHC24a1");
-        std::string mcCutNo_suff((s=="MB_") ? "053" : "023");
-        std::string lTechnicalName(
-            Form("%s_%s_5TeV_%s", 
-                 theMeson.data(), 
-                 mcId.data(), 
-                 thEventCutNo.replace(5, 3, mcCutNo_suff.data()).data()));
-        theO.Write(lTechnicalName.data());
-        printf("Info: saveMC_withProperName(): saved %s as %s\n", theO.GetName(), lTechnicalName.data());
-        
-        // LHC20e3a always needs to be saved in addition to e3b or e3c
-        size_t pos = lTechnicalName.find("e3a");
-        if (pos != std::string::npos){
-            lTechnicalName.replace(pos, 3, isCentral ? "e3b" : "e3c");
+        auto saveMC_withProperName = [&](TObject const &theO){
+            std::string s(theO.GetName());
+            s = s.substr(3, 3);
+            std::string mcId((s=="MB_")
+                    ? "LHC20e3a"
+                    : (s=="ASh")
+                        ? "LHC20g10"
+                        : "LHC24a1");
+            std::string mcCutNo_suff((s=="MB_") ? "053" : "023");
+            std::string lTechnicalName(
+                Form("%s_%s_5TeV_%s", 
+                    theMeson.data(), 
+                    mcId.data(), 
+                    thEventCutNo.replace(5, 3, mcCutNo_suff.data()).data()));
             theO.Write(lTechnicalName.data());
             printf("Info: saveMC_withProperName(): saved %s as %s\n", theO.GetName(), lTechnicalName.data());
+            
+            // LHC20e3a always needs to be saved in addition to e3b or e3c
+            size_t pos = lTechnicalName.find("e3a");
+            if (pos != std::string::npos){
+                lTechnicalName.replace(pos, 3, isCentral ? "e3b" : "e3c");
+                theO.Write(lTechnicalName.data());
+                printf("Info: saveMC_withProperName(): saved %s as %s\n", theO.GetName(), lTechnicalName.data());
+            }
+        }; // end helper lambdas for saveAllToWeightsFile
+
+        // saveAllToWeightsFile starts here
+        TFile* hfile = new TFile(Form("%s/MCSpectraInputPbPb_Stephan_it%d%s.root", 
+                                      theDir.data(), theRound, theSaveDNDPT ? "_var" : ""), 
+                                 "UPDATE");
+        // save data first
+        TF1 &lFit = theSaveDNDPT ? lFit_data_var : lFit_data_var_trans_inv;
+        lFit.SetName(lFit_data_inv->GetName()); 
+        saveDataFit_withProperName(lFit);  
+        
+        // the MC histos
+        for (TH1 const *hInv : vInvMCYields_wow){
+            if (!hInv){
+                printf("WARNING: fitMesonAndWriteToFile(): nullptr in vInvMCYields_wow.\n");
+                continue;
+            }
+            TH1 const &hMC = theSaveDNDPT 
+                ? *utils_computational::TranformInvariantYieldToD2DPtDY(
+                    *hInv,
+                    nullptr,
+                    Form("%s_trans_var", 
+                         hInv->GetName()),
+                    Form("%s;pT (GeV/c);#frac{1}{N_ev} #frac{d^2 N}{dpT dy}", 
+                         hInv->GetTitle()))
+                : *hInv; 
+            saveMC_withProperName(hMC);
         }
-    };
 
-    TFile* hfile = new TFile(Form("%s/MCSpectraInputPbPb_Stephan_it%d.root", theDir.data(), theRound), "UPDATE");  
-    saveDataFit_withProperName(*lFit_data_inv);  
+        cOneIt.Write();
+        hfile->Write();
+        hfile->Close();
+        hfile->Delete();    
+    }; // end saveAllToWeightsFile
 
-    for (TH1 const *h : vInvMCYields_wow){
-        if (!h){
-            printf("WARNING: fitMesonAndWriteToFile(): nullptr in vInvMCYields_wow.\n");
-            continue;
-        }
-        saveMC_withProperName(*h);
-    }
-    cOneIt.Write();
-    hfile->Write();
-    hfile->Close();
-    hfile->Delete();    
-
+    saveAllToWeightsFile(false);
+    saveAllToWeightsFile(true);
     return &cOneIt;
 }
 

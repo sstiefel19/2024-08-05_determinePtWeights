@@ -55,12 +55,13 @@ TCanvas*
                            std::string theFitOption, 
                            std::string theEffiPlotLabel, 
                            size_t thePlotWidth, // in pixels
-                           double theLeftMargin=0.25,
-                           double theRightMargin=0.05,
-                           bool verticallyTight=true,
-                           std::string theDir="",
-                           Double_t *theMinPtFit=nullptr,
-                           Double_t *theMaxPtFit=nullptr);
+                           double theLeftMargin = 0.25,
+                           double theRightMargin = 0.05,
+                           bool verticallyTight = true,
+                           std::string theDir = "",
+                           Double_t *theMinPtFit = nullptr,
+                           Double_t *theMaxPtFit = nullptr,
+                           bool      theSaveDNDPT = false);
 
 void setMarginsToZero(TVirtualPad& vpad);
 
@@ -78,15 +79,15 @@ void setMarginsToZero(TVirtualPad& vpad);
         from this histo. Compare then to the one in the normal data output file.*/
 void comparePionSpectra2(){
 
-    tVPars vPi0_101 = {{"oHag",         "FM", "efficiency from MB"},             // 0
-                       {"tcmDoublePow", "FM", "efficiency from MB + ASh"},       // 1
-                       {"tcmDoublePow", "FM", "efficiency from MB + (ASl&ASh)"}, // 2
-                       {"tcmDoublePow", "FM", "efficiency from MB + (ASl&ASh)"}, // 3
-                       {"tcmDoublePow", "FM", "efficiency from MB + ASh + ASl"}, // 4
-                       {"tcmDoublePow", "FM", "efficiency from MB + ASh + ASl"}, // 5
-                       {"tcmDoublePow", "FM", "efficiency from MB + ASh + ASl"}, // 6
-                       {"tcmDoublePow", "FM", "efficiency from MB + ASh + ASl"}, // 7
-                       {"tcmDoublePow", "FMN0", "efficiency from MB + ASh + ASl"}  // 8
+    tVPars vPi0_101 = {{"oHag",         "FM",   "efficiency from MB"},             // 0
+                       {"tcmDoublePow", "FM",   "efficiency from MB + ASh"},       // 1
+                       {"tcmDoublePow", "FM",   "efficiency from MB + (ASl&ASh)"}, // 2
+                       {"tcmDoublePow", "FM",   "efficiency from MB + (ASl&ASh)"}, // 3
+                       {"tcmDoublePow", "FM",   "efficiency from MB + ASh + ASl"}, // 4
+                       {"tcmDoublePow", "FM",   "efficiency from MB + ASh + ASl"}, // 5
+                       {"tcmDoublePow", "FM",   "efficiency from MB + ASh + ASl"}, // 6
+                       {"tcmDoublePow", "FM",   "efficiency from MB + ASh + ASl"}, // 7
+                       {"oHag",         "FMN0", "efficiency from MB + ASh + ASl"}  // 8
                       };
     
     tVPars vPi0_135 = {{"oHag",         "EX0FM", "efficiency from MB"},
@@ -97,7 +98,7 @@ void comparePionSpectra2(){
                        {"tcmDoublePow", "FM", "efficiency from MB + ASh + ASl"},
                        {"tcmDoublePow", "FM", "efficiency from MB + ASh + ASl"},
                        {"tcmDoublePow", "FM", "efficiency from MB + ASh + ASl"},
-                       {"tcmDoublePow", "FMN0", "efficiency from MB + ASh + ASl"}
+                       {"oHag", "FMN0", "efficiency from MB + ASh + ASl"}
                       };
 
     tVPars vEta_101 = {{"oHag", "EX0FM", "efficiency from MB"},
@@ -169,7 +170,7 @@ void comparePionSpectra2(){
     // lLeftMargin/*theLeftMargin*/, lRightMargin/*theRightMargin*/, lDir);
     // return;
 
-    // for (auto meson : std::vector<std::string>{"Pi0"}){
+    // for (auto meson : std::vector<std::string>{"Eta"}){
     for (auto meson : std::vector<std::string>{"Pi0", "Eta"}){
         for (auto evtcut : std::vector<std::string>{"10130e03", "13530e03"}){
             printf("%s %s\n", meson.data(), evtcut.data());
