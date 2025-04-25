@@ -48,12 +48,12 @@ void doMultiRound(std::map<int, std::string> const &theMapBaseDirs,
     double wi = (1.-theLeftMargin)/denom;
 
     size_t lColumWidth = 200; // pixels
-
+    printf("line51");
     // the master canvas
     std::string lNameC(Form("lCMultiRound_%s_%s", theMeson.data(), theCent.data()));
     auto &lCM = *new TCanvas(lNameC.data(), lNameC.data(), nCols*lColumWidth, 1000);
     lCM.SetMargin(0., 0., 0., 0.);
-
+printf("line56");
     // create n parallel columns in which the canvas from fitMesonAndWriteToFile will be drawn
     double lastBoarder = 0.;
     std::vector<TPad*> lPads;
@@ -66,7 +66,7 @@ void doMultiRound(std::map<int, std::string> const &theMapBaseDirs,
         lPads.push_back(p);
         lastBoarder = boarder;
     }
-    
+    printf("line69");
     std::string lKey = theMeson + "_" + theCent;
     tVPars const &lVector = theMap.at(lKey);
     for (size_t iPos = 0; iPos < nCols; ++iPos){    
@@ -76,7 +76,7 @@ void doMultiRound(std::map<int, std::string> const &theMapBaseDirs,
         bool isPi0 = theMeson=="Pi0";        
         Double_t lXminFit = isPi0 ?  0.6 : 0.; // exclude 0.4-0.6GeV/c bin
         Double_t lXmaxFit = isPi0 ? 25 : 0.;
-
+printf("line79");
         TCanvas* cNx1_i = 
             fitMesonAndWriteToFile(
                 theMapBaseDirs,   
@@ -93,9 +93,10 @@ void doMultiRound(std::map<int, std::string> const &theMapBaseDirs,
                 theDir,
                 lXminFit ? &lXminFit : nullptr,
                 lXmaxFit ? &lXmaxFit : nullptr);
-
+printf("line96");
         lPads[iPos+1]->cd();
         cNx1_i->DrawClonePad();
+        printf("line99");
     }
 
     lCM.SaveAs(Form("%s/%s.pdf", theDir.data(), lNameC.data()));
@@ -195,12 +196,10 @@ TCanvas*
             printf("SFS line 175: theRound = %d\n", theRound);
             switch (theRound) {
                 case 1: lConfig = isPi0 ? "995" : "996"; break;
-                // case 2: lConfig = isPi0 ? "997" : "998"; break;
                 case 8: lConfig = isPi0 ? "997" : "995"; break;
-                // case 8: lConfig = isPi0 ? "997" : "995"; break;
+                case 9: lConfig = isPi0 ? "997" : "995"; break;
                 
                 default: { 
-printf("line 179\n");
                     return static_cast<TH1*>(nullptr);     
                 }
             }
@@ -230,7 +229,7 @@ printf("line 179\n");
                 "ab" 
               : "ac");
 
-        printf("SFS 208: theRound, theMBAS.data(), asTag.data(), weightsTag.data(), mcTag.data(), lNewHistoName.data(), lIsMB, lIsAS2 :\n\t %d %s %s %s %s %s %d %d\n", 
+        printf("SFS 231: theRound, theMBAS.data(), asTag.data(), weightsTag.data(), mcTag.data(), lNewHistoName.data(), lIsMB, lIsAS2 :\n\t %d %s %s %s %s %s %d %d\n", 
             theRound, theMBAS.data(), asTag.data(), weightsTag.data(), mcTag.data(), lNewHistoName.data(), lIsMB, lIsAS2);
                
         std::string lTrainSubDir(lIsMB 
@@ -246,7 +245,7 @@ printf("line 179\n");
                         ? "LHC24a2"     //                           lIsAS2
                         : "LHC20g10");  //                           !IsAS2  
 
-        lTrainSubDir.append(lIsAS2 
+        lTrainSubDir.append((lIsAS2 && theRound<8)  
             ? Form("/child%s_runlist_1", isCentral ? "1" : "2")
             : "");
         
@@ -358,7 +357,7 @@ printf("line 179\n");
             ?  &utils_TH1::GlobalPieceWiseExponentialInterpolation(
                     Form("%s_exp_inter", theH->GetName()), *theH)
             : static_cast<TF1*>(nullptr);
-    };
+    };      
     TF1 *f_hInvMCYield_mb_nw_exp_inter = getExpInter(hInvMCYield_mc_mb_nw);
     TF1 *f_hVarMCYield_mb_nw_exp_inter = getExpInter(hVarMCYield_mc_mb_nw);
 
@@ -764,9 +763,13 @@ printf("line 179\n");
         }; // end helper lambdas for saveAllToWeightsFile
 
         // saveAllToWeightsFile starts here
-        TFile* hfile = new TFile(Form("%s/MCSpectraInputPbPb_Stephan_it%d%s.root", 
-                                      theDir.data(), theRound, theSaveDNDPT ? "_var" : ""), 
-                                 "UPDATE");
+        std::string lWeightsfileFilename(Form("%s/MCSpectraInputPbPb_Stephan_it%d%s.root", 
+                                              theDir.data(), theRound, theSaveDNDPT ? "_var" : ""));
+        printf("INFO: saveAllToWeightsFile(): Writing objects in %s form to %s\n", 
+               theSaveDNDPT ? "_var" : "inv",
+               lWeightsfileFilename.data());      
+        TFile* lWeightsfile = new TFile(lWeightsfileFilename.data(), "UPDATE");
+        
         // save data first
         TF1 &lFit = theSaveDNDPT ? lFit_data_var : lFit_data_var_trans_inv;
         lFit.SetName(lFit_data_inv->GetName()); 
@@ -791,13 +794,16 @@ printf("line 179\n");
         }
 
         cOneIt.Write();
-        hfile->Write();
-        hfile->Close();
-        hfile->Delete();    
-    }; // end saveAllToWeightsFile
+        lWeightsfile->Write();
+        lWeightsfile->Close();
+        lWeightsfile->Delete();    
+        printf("line 799: // end saveAllToWeightsFile\n");
+    }; 
 
     saveAllToWeightsFile(false /*theSaveDNDPT*/);
     saveAllToWeightsFile(true /*theSaveDNDPT*/);
+    printf("&cOneIt = %p ClassName = %s \n", (void*)&cOneIt, cOneIt.ClassName());
+
     return &cOneIt;
 }
 
