@@ -34,6 +34,7 @@ struct sPars {
         std::string fitFunc;
         std::string fitOpts;
         std::string tag;
+        std::string weightsCalcOption; // to specify if the weights should be calculated in var form (default) or inv form (historic)
     };
 
 typedef std::vector<sPars> tVPars;
@@ -44,7 +45,8 @@ void doMultiRound(std::map<int, std::string> const &theMapBaseDirs,
                   std::vector<int> const &theRounds,
                   double theLeftMargin=0.25,
                   double theRightMargin=0.05,
-                  std::string const &theDir="");
+                  std::string const &theDir="",
+                  bool               theUseInvWeightsCalculation=false);
 
 TCanvas* 
     fitMesonAndWriteToFile(std::map<int, std::string> const &theMapBaseDirs,
@@ -54,6 +56,7 @@ TCanvas*
                            std::string theFitFunction, 
                            std::string theFitOption, 
                            std::string theEffiPlotLabel, 
+                           std::string theWeightsCalcOption, 
                            size_t thePlotWidth, // in pixels
                            double theLeftMargin = 0.25,
                            double theRightMargin = 0.05,
@@ -79,52 +82,60 @@ void setMarginsToZero(TVirtualPad& vpad);
         from this histo. Compare then to the one in the normal data output file.*/
 void comparePionSpectra2(){
 
-    tVPars vPi0_101 = {{"oHag",         "FM",   "efficiency from MB"},             // 0
-                       {"tcmDoublePow", "FM",   "efficiency from MB + ASh"},       // 1
-                       {"tcmDoublePow", "FM",   "efficiency from MB + (ASl&ASh)"}, // 2
-                       {"tcmDoublePow", "FM",   "efficiency from MB + (ASl&ASh)"}, // 3
-                       {"tcmDoublePow", "FM",   "efficiency from MB + ASh + ASl"}, // 4
-                       {"tcmDoublePow", "FM",   "efficiency from MB + ASh + ASl"}, // 5
-                       {"oHag", "FMN0",   "efficiency from MB + ASh + ASl"}, // 6
-                       {"oHag", "FMN0",   "efficiency from MB + ASh + ASl"}, // 7
-                       {"oHag",         "FMN0", "efficiency from MB + ASh + ASl"}, // 8
-                       {"oHag",         "FMN0", "efficiency from MB + ASh + ASl"}  // 9
+    bool lUseInvWeightsCalculation = false; // this superseeds the settings in tVPars for all mesons and cents
+    if (lUseInvWeightsCalculation){
+        printf("\n\nWARNING: comparePionSpectra2.h line 87: Using invariant inv weights trains files. Do you really want that?\n\n");
+    }
+    tVPars vPi0_101 = {{"oHag",         "FM",   "efficiency from MB", ""},             // 0
+                       {"tcmDoublePow", "FM",   "efficiency from MB + ASh", ""},       // 1
+                       {"tcmDoublePow", "FM",   "efficiency from MB + (ASl&ASh)", ""}, // 2
+                       {"tcmDoublePow", "FM",   "efficiency from MB + (ASl&ASh)", ""}, // 3
+                       {"tcmDoublePow", "FM",   "efficiency from MB + ASh + ASl", ""}, // 4
+                       {"tcmDoublePow", "FM",   "efficiency from MB + ASh + ASl", ""}, // 5
+                       {"oHag", "FMN0",   "efficiency from MB + ASh + ASl", ""}, // 6
+                       {"oHag", "FMN0",   "efficiency from MB + ASh + ASl", ""}, // 7
+                       {"oHag",         "FMN0", "efficiency from MB + ASh + ASl", ""}, // 8
+                       {"oHag",         "FMN0", "efficiency from MB + ASh + ASl", ""}, // 8
+                       {"oHag",         "FMN0", "efficiency from MB + ASh + ASl", ""}  // 10
                       };
     
-    tVPars vPi0_135 = {{"oHag",         "EX0FM", "efficiency from MB"},
-                       {"oHag",         "EX0FM", "efficiency from MB + ASh"},
-                       {"tcmDoublePow", "FM", "efficiency from MB + (ASl&ASh)"},
-                       {"tcmDoublePow", "FM", "efficiency from MB + (ASl&ASh)"},
-                       {"tcmDoublePow", "FM", "efficiency from MB + ASh + ASl"},
-                       {"tcmDoublePow", "FM", "efficiency from MB + ASh + ASl"},
-                       {"oHag", "FMN0", "efficiency from MB + ASh + ASl"},
-                       {"oHag", "FMN0", "efficiency from MB + ASh + ASl"},
-                       {"oHag", "FMN0", "efficiency from MB + ASh + ASl"},
-                       {"oHag", "FMN0", "efficiency from MB + ASh + ASl"}
+    tVPars vPi0_135 = {{"oHag",         "EX0FM", "efficiency from MB", ""},
+                       {"oHag",         "EX0FM", "efficiency from MB + ASh", ""},
+                       {"tcmDoublePow", "FM", "efficiency from MB + (ASl&ASh)", ""},
+                       {"tcmDoublePow", "FM", "efficiency from MB + (ASl&ASh)", ""},
+                       {"tcmDoublePow", "FM", "efficiency from MB + ASh + ASl", ""},
+                       {"tcmDoublePow", "FM", "efficiency from MB + ASh + ASl", ""},
+                       {"oHag", "FMN0", "efficiency from MB + ASh + ASl", ""},
+                       {"oHag", "FMN0", "efficiency from MB + ASh + ASl", ""},
+                       {"oHag", "FMN0", "efficiency from MB + ASh + ASl", ""},
+                       {"oHag", "FMN0", "efficiency from MB + ASh + ASl", ""},
+                       {"oHag", "FMN0", "efficiency from MB + ASh + ASl", ""}
                       };
 
-    tVPars vEta_101 = {{"oHag", "EX0FM", "efficiency from MB"},
-                       {"oHag", "EX0FM", "efficiency from MB + ASh"},
-                       {"oHag", "EX0FM", "efficiency from MB + (ASl&ASh)"},
-                       {"oHag", "EX0FM", "efficiency from MB + (ASl&ASh)"},
-                       {"oHag", "EX0FM", "efficiency from MB + ASh + ASl"},
-                       {"oHag", "EX0FM", "efficiency from MB + ASh + ASl"},
-                       {"oHag", "FMN0", "efficiency from MB + ASh + ASl"},
-                       {"oHag", "FMN0", "efficiency from MB + ASh + ASl"},
-                       {"oHag", "FMN0",  "efficiency from MB + ASh + ASl"},
-                       {"oHag", "FMN0",  "efficiency from MB + ASh + ASl"}
+    tVPars vEta_101 = {{"oHag", "EX0FM", "efficiency from MB", ""},
+                       {"oHag", "EX0FM", "efficiency from MB + ASh", ""},
+                       {"oHag", "EX0FM", "efficiency from MB + (ASl&ASh)", ""},
+                       {"oHag", "EX0FM", "efficiency from MB + (ASl&ASh)", ""},
+                       {"oHag", "EX0FM", "efficiency from MB + ASh + ASl", ""},
+                       {"oHag", "EX0FM", "efficiency from MB + ASh + ASl", ""},
+                       {"oHag", "FMN0", "efficiency from MB + ASh + ASl", ""},
+                       {"oHag", "FMN0", "efficiency from MB + ASh + ASl", ""},
+                       {"oHag", "FMN0",  "efficiency from MB + ASh + ASl", ""},
+                       {"oHag", "FMN0",  "efficiency from MB + ASh + ASl", ""},
+                       {"oHag", "FMN0",  "efficiency from MB + ASh + ASl", ""}
                       };
 
-    tVPars vEta_135 = {{"oHag",         "EX0FM", "efficiency from MB"},
-                       {"tcmDoublePow", "FM", "efficiency from MB + ASh"},
-                       {"tcmDoublePow", "FM", "efficiency from MB + (ASl&ASh)"},
-                       {"tcmDoublePow", "FM", "efficiency from MB + (ASl&ASh)"},
-                       {"tcmDoublePow", "FM", "efficiency from MB + ASh + ASl"},
-                       {"tcmDoublePow", "FM", "efficiency from MB + ASh + ASl"},
-                       {"oHag", "FMN0", "efficiency from MB + ASh + ASl"},
-                       {"oHag", "FMN0", "efficiency from MB + ASh + ASl"},
-                       {"oHag", "N0FM", "efficiency from MB + ASh + ASl"},
-                       {"oHag", "N0FM", "efficiency from MB + ASh + ASl"}
+    tVPars vEta_135 = {{"oHag",         "EX0FM", "efficiency from MB", ""},
+                       {"tcmDoublePow", "FM", "efficiency from MB + ASh", ""},
+                       {"tcmDoublePow", "FM", "efficiency from MB + (ASl&ASh)", ""},
+                       {"tcmDoublePow", "FM", "efficiency from MB + (ASl&ASh)", ""},
+                       {"tcmDoublePow", "FM", "efficiency from MB + ASh + ASl", ""},
+                       {"tcmDoublePow", "FM", "efficiency from MB + ASh + ASl", ""},
+                       {"oHag", "FMN0", "efficiency from MB + ASh + ASl", ""},
+                       {"oHag", "FMN0", "efficiency from MB + ASh + ASl", ""},
+                       {"oHag", "FMN0", "efficiency from MB + ASh + ASl", ""},
+                       {"oHag", "FMN0", "efficiency from MB + ASh + ASl", ""},
+                       {"oHag", "FMN0", "efficiency from MB + ASh + ASl", ""}
                       };
     
     std::map<std::string, tVPars const&> lMap_mesonCent_params;
@@ -144,7 +155,8 @@ void comparePionSpectra2(){
         {6, "~/work/afterburner/2024/2024-11-04_allASMC_ptw5"},
         {7, "~/work/afterburner/2024/2024-11-07_allASMC_ptw6"},
         {8, "~/work/afterburner/2025/2025-04-18_allASMC_ptw_6_retakePtWeights_0"},
-        {9, "~/work/afterburner/2025/2025-04-25_allASMC_ptw_8_retakePtWeights_1"}
+        {9, "~/work/afterburner/2025/2025-04-25_allASMC_ptw_8_retakePtWeights_1"},
+        {10, "~/work/afterburner/2025/2025-04-27_allASMC_ptw_9_retakePtWeights_2"}
     };
 
     gROOT->Reset();   
@@ -152,8 +164,9 @@ void comparePionSpectra2(){
 
     // std::vector<int> lRounds{0, 2, 3, 4, 5, 6, 7};
     // std::vector<int> lRounds{ 2, 3, 4, 5, 7, 8};
-    std::vector<int> lRounds{6, 7, 8, 9};
-    // std::vector<int> lRounds{7};
+    // std::vector<int> lRounds{6, 7, 8, 9, 10};
+    std::vector<int> lRounds{8, 9, 10};
+    // std::vector<int> lRounds{10};
 
     // create meaningfull id and directory to write into
     // std::string lID(Form("%d_%d_", TDatime().GetDate(), TDatime().GetTime()));
@@ -186,60 +199,14 @@ void comparePionSpectra2(){
                          lRounds, 
                          lLeftMargin/*theLeftMargin*/,
                          lRightMargin/*theRightMargin*/,
-                         lDir);
+                         lDir,
+                         lUseInvWeightsCalculation);
         }
     }
+    if (lUseInvWeightsCalculation){
+        printf("\n\nWARNING: comparePionSpectra2.h line 204: Used invariant inv weights trains files. Do you really want that?\n\n");
+    }
     return;
-
-/*
-    int round = 1;
-
-    fitMesonAndWriteToFile(
-        lMapBaseDirs,
-        round,
-        "10130e03",
-        "Pi0",
-        "tcmDoublePow",
-        "FM",
-        "efficiency from MB + AS");
-    return;
-    fitMesonAndWriteToFile(
-        lMapBaseDirs,
-        round,
-        "13530e03",
-        "Pi0",
-        "tcmDoublePow",
-        "FM",
-        "efficiency from MB + AS");
-        
-    fitMesonAndWriteToFile(
-        lMapBaseDirs,
-        round,
-        "10130e03",
-        "Eta",
-        "oHag",
-        "EX0FM",
-        "efficiency from MB + AS");    
-
-    fitMesonAndWriteToFile(
-        lMapBaseDirs,
-        round,
-        "13530e03",
-        "Eta",
-        "tcmDoublePow",
-        "FM",
-        "efficiency from MB + AS");
-
-    // mod
-    // fitMesonAndWriteToFile(
-    //    lMapBaseDirs,
-    //     round,
-    //     "13530e03",
-    //     "Eta",
-    //     "oHag",
-    //     "EX0FM",
-    //     "efficiency from MB + AS");
-*/
 }
 
 
