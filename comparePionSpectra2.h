@@ -28,7 +28,7 @@
 * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.                    *
 ***********************************************************************************/
 
-#include "myStyle.h"
+#include "/Users/stephanstiefelmaier/work/analysisSoftware/utils_sstiefel_2024/myStyle.h"
 
 struct sPars {
         std::string fitFunc;
