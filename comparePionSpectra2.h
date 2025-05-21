@@ -96,7 +96,8 @@ void comparePionSpectra2(){
                        {"oHag", "FMN0",   "efficiency from MB + ASh + ASl", ""}, // 7
                        {"oHag",         "FMN0", "efficiency from MB + ASh + ASl", ""}, // 8
                        {"oHag",         "FMN0", "efficiency from MB + ASh + ASl", ""}, // 8
-                       {"oHag",         "FMN0", "efficiency from MB + ASh + ASl", ""}  // 10
+                       {"oHag",         "FMN0", "efficiency from MB + ASh + ASl", ""},  // 10
+                       {"oHag",         "FMN0", "efficiency from MB + ASh + ASl", ""}  // 11
                       };
     
     tVPars vPi0_135 = {{"oHag",         "EX0FM", "efficiency from MB", ""},
@@ -105,6 +106,7 @@ void comparePionSpectra2(){
                        {"tcmDoublePow", "FM", "efficiency from MB + (ASl&ASh)", ""},
                        {"tcmDoublePow", "FM", "efficiency from MB + ASh + ASl", ""},
                        {"tcmDoublePow", "FM", "efficiency from MB + ASh + ASl", ""},
+                       {"oHag", "FMN0", "efficiency from MB + ASh + ASl", ""},
                        {"oHag", "FMN0", "efficiency from MB + ASh + ASl", ""},
                        {"oHag", "FMN0", "efficiency from MB + ASh + ASl", ""},
                        {"oHag", "FMN0", "efficiency from MB + ASh + ASl", ""},
@@ -122,6 +124,7 @@ void comparePionSpectra2(){
                        {"oHag", "FMN0", "efficiency from MB + ASh + ASl", ""},
                        {"oHag", "FMN0",  "efficiency from MB + ASh + ASl", ""},
                        {"oHag", "FMN0",  "efficiency from MB + ASh + ASl", ""},
+                       {"oHag", "FMN0",  "efficiency from MB + ASh + ASl", ""},
                        {"oHag", "FMN0",  "efficiency from MB + ASh + ASl", ""}
                       };
 
@@ -131,6 +134,7 @@ void comparePionSpectra2(){
                        {"tcmDoublePow", "FM", "efficiency from MB + (ASl&ASh)", ""},
                        {"tcmDoublePow", "FM", "efficiency from MB + ASh + ASl", ""},
                        {"tcmDoublePow", "FM", "efficiency from MB + ASh + ASl", ""},
+                       {"oHag", "FMN0", "efficiency from MB + ASh + ASl", ""},
                        {"oHag", "FMN0", "efficiency from MB + ASh + ASl", ""},
                        {"oHag", "FMN0", "efficiency from MB + ASh + ASl", ""},
                        {"oHag", "FMN0", "efficiency from MB + ASh + ASl", ""},
@@ -156,7 +160,8 @@ void comparePionSpectra2(){
         {7, "~/work/afterburner/2024/2024-11-07_allASMC_ptw6"},
         {8, "~/work/afterburner/2025/2025-04-18_allASMC_ptw_6_retakePtWeights_0"},
         {9, "~/work/afterburner/2025/2025-04-25_allASMC_ptw_8_retakePtWeights_1"},
-        {10, "~/work/afterburner/2025/2025-04-27_allASMC_ptw_9_retakePtWeights_2"}
+        {10, "~/work/afterburner/2025/2025-04-27_allASMC_ptw_9_retakePtWeights_2"},
+        {11, "~/work/afterburner/2025/2025-05-21_allMC_expInter_new_it10_retakePtWeights_3"}
     };
 
     gROOT->Reset();   
@@ -165,8 +170,8 @@ void comparePionSpectra2(){
     // std::vector<int> lRounds{0, 2, 3, 4, 5, 6, 7};
     // std::vector<int> lRounds{ 2, 3, 4, 5, 7, 8};
     // std::vector<int> lRounds{6, 7, 8, 9, 10};
-    std::vector<int> lRounds{8, 9, 10};
-    // std::vector<int> lRounds{10};
+    std::vector<int> lRounds{ 9, 10};
+    // std::vector<int> lRounds{11};
 
     // create meaningfull id and directory to write into
     // std::string lID(Form("%d_%d_", TDatime().GetDate(), TDatime().GetTime()));

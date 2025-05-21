@@ -420,21 +420,27 @@ TCanvas*
     // compare both in invariant form
     TF1 &lRatioFits_int_over_old = utils_TF1::TF1Division("lRatioFits_int_over_old", lFit_data_var_trans_inv, *lFit_data_inv, false /*theCheckRanges*/);
  
-    // todo: GlobalPieceWiseExponentialInterpolation_int
-    // 2.2 test local exponential interpolations for MB MC inv
-    auto getExpInter = [](TH1 &theH, bool theIntegrate){
-        return utils_TH1::GlobalPieceWiseExponentialInterpolationTF1(
-            Form("%s_exp_inter_%d_%d",
-                 theH.GetName(),
-                 theIntegrate, 
-                 theIntegrate), 
-            theH, 
-            theIntegrate /* = theIntegrate */,
-            theIntegrate /* = theUseXtimesExp */);
-    };      
-    TF1 *f_hInvMCYield_mb_nw_exp_inter = getExpInter(*hInvMCYield_mc_mb_nw, false);
-    // TF1 *f_hVarMCYield_mb_nw_exp_inter = getExpInter(hVarMCYield_mc_mb_nw, false);
-    TF1 *f_hVarMCYield_mb_nw_exp_inter = getExpInter(*hVarMCYield_mc_mb_nw, true);
+    // // 2.2 test local exponential interpolations for MB MC inv
+    // auto getExpInter = [](TH1 &theH, bool theIntegrate){
+    //     return utils_TH1::InitGlobalPieceWiseExponentialInterpolationTF1(
+    //         ""
+    //         theH, 
+    //         theIntegrate /* = theIntegrate */,
+    //         theIntegrate /* = theUseXtimesExp */);
+    // };    
+    // TF1 *f_hInvMCYield_mb_nw_exp_inter = getExpInter(*hInvMCYield_mc_mb_nw, false);
+    // TF1 *f_hVarMCYield_mb_nw_exp_inter = getExpInter(*hVarMCYield_mc_mb_nw, true);
+
+    utils_TH1 &lUtils = *new utils_TH1("comparePionSpectra2");
+
+    TF1 *f_hInvMCYield_mb_nw_exp_inter = lUtils.InitGlobalPieceWiseExponentialInterpolationTF1(
+        "", 
+        *hInvMCYield_mc_mb_nw, 
+        false);
+    TF1 *f_hVarMCYield_mb_nw_exp_inter = lUtils.InitGlobalPieceWiseExponentialInterpolationTF1(
+        "",
+        *hVarMCYield_mc_mb_nw, 
+        true);
 
     // 3) ========================= plotting =============================================
     bool isFirstCol = theLeftMargin;
