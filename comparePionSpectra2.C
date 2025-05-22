@@ -391,7 +391,7 @@ TCanvas*
     size_t lastIt = max(0, theRound-1);
     std::string suff((lastIt==1) ? "0b" : Form("%zu", lastIt));
     std::string fname_weightsFile_last(Form(
-        "~/2024/2024-08-05_determinePtWeights/newUploadedFiles/MCSpectraInputPbPb_Stephan_it%s.root", 
+        "~/work/2024/2024-08-05_determinePtWeights/newUploadedFiles/MCSpectraInputPbPb_Stephan_it%s.root", 
         suff.data()));
     printf("opening last iterations weights file %s ..\n", fname_weightsFile_last.data());
     TF1* lastItFit = (TF1*)utils_files_strings::GetObjectFromPathInFile(
@@ -420,17 +420,6 @@ TCanvas*
     // compare both in invariant form
     TF1 &lRatioFits_int_over_old = utils_TF1::TF1Division("lRatioFits_int_over_old", lFit_data_var_trans_inv, *lFit_data_inv, false /*theCheckRanges*/);
  
-    // // 2.2 test local exponential interpolations for MB MC inv
-    // auto getExpInter = [](TH1 &theH, bool theIntegrate){
-    //     return utils_TH1::InitGlobalPieceWiseExponentialInterpolationTF1(
-    //         ""
-    //         theH, 
-    //         theIntegrate /* = theIntegrate */,
-    //         theIntegrate /* = theUseXtimesExp */);
-    // };    
-    // TF1 *f_hInvMCYield_mb_nw_exp_inter = getExpInter(*hInvMCYield_mc_mb_nw, false);
-    // TF1 *f_hVarMCYield_mb_nw_exp_inter = getExpInter(*hVarMCYield_mc_mb_nw, true);
-
     utils_TH1 &lUtils = *new utils_TH1("comparePionSpectra2");
 
     TF1 *f_hInvMCYield_mb_nw_exp_inter = lUtils.InitGlobalPieceWiseExponentialInterpolationTF1(
@@ -469,6 +458,7 @@ TCanvas*
 
     auto getNextTab = [&](){
         int newPadNo = gPad->GetNumber() + 1;
+        printf("line 461: getNextTab(): newPadNo = %d\n", newPadNo);
         cOneIt.cd(newPadNo);
         bool isTop = newPadNo==1;
         bool isBottom = newPadNo==lNrows;
@@ -531,6 +521,7 @@ TCanvas*
         Style_t lStyle = hname.Contains("WW") ? markerStyleMCWW : markerStyleMCWOW;
         return MPair({lColor, lStyle});
     };
+
     auto plotVector = [&](std::vector<TH1*> const &theVector, TLegend *theLeg){
         printf("plotVector(): theVector.size() = %zu\n", theVector.size());
         for (TH1* ih : theVector){
@@ -538,12 +529,26 @@ TCanvas*
                 printf("plotVector(): WARNING: theVector contains nullptrs. Ignoring. \n");
                 continue; 
             }
-            printf("about to call DrawAndAdd for %s\n", ih->GetName());
+            printf("line 532: plotVector(): about to call DrawAndAdd for %s\n", ih->GetName());
             TH1& h = *ih;
             MPair lPair = getColorAndMarkerForHisto(h);           
             bool ww = lPair.second==markerStyleMCWW;
-            utils_plotting::DrawAndAdd(h, "same", lPair.first, 1.0, 
-                theLeg, h.GetTitle(), "lep", lLegendTextSize, true, lPair.second, 1.0);
+            bool isRatio = TString(ih->GetName()).Contains("_over_");  // Form("Weights_%s_over_last", lNewName.data())));    
+
+            utils_plotting::DrawAndAdd(
+                h, 
+                "same", 
+                lPair.first, 
+                1.0, 
+                theLeg, 
+                isRatio 
+                    ? "Ratio"   
+                    : h.GetTitle(), 
+                "lep", 
+                lLegendTextSize, 
+                true, 
+                lPair.second, 
+                1.0);
         }
     };
 
@@ -657,7 +662,6 @@ TCanvas*
     // compare this effi to previous effis
     cout << "==================== PAD 3 ===================================\n";
     auto &pad3 = *getNextTab();
-    // gPad->SetLogy();
 
     TH1 &hPlot1D_pad3 = *(TH1*)histo1DRatio.Clone("clonepad3");
     hPlot1D_pad3.GetYaxis()->SetRangeUser(lYmin_ratio_pad3, lYmax_ratio_pad3);
@@ -666,28 +670,28 @@ TCanvas*
     
     if (theRound) {
         
-        printf("SFS theRound = %d\n", theRound);
-        auto *leg4 = utils_plotting::GetLegend(xnew(0.16),0.6,xnew(0.44),0.86);
-        plotVector(vHistosRatio_weightsToPrev, leg4);
+        auto *leg3 = utils_plotting::GetLegend(xnew(0.16),0.6,xnew(0.44),0.86);
     
-        // draw ratio of effi/effiLast
-        TH1 &lHistoTrueEffi     = *(TH1*)utils_files_strings::GetObjectFromPathInFile(filenameData.data(), "TrueMesonEffiPt");
-        TH1 *lHistoTrueEffiLast = theRound 
-            ? (TH1*)utils_files_strings::GetObjectFromPathInFile(filenameData_last.data(), 
-                                                                 "TrueMesonEffiPt")
-            : static_cast<TH1*>(nullptr);
+        // draw ratio of effi/effiLast (the full merged TrueEfficiciency)
+        TH1 &lHistoTrueEffi = *(TH1*)utils_files_strings::GetObjectFromPathInFile(
+            filenameData.data(), 
+            "TrueMesonEffiPt");
 
-        // utils_TH1::PrintBinsWithErrors(lHistoTrueEffi);    
+        TH1 &lHistoTrueEffiLast = *(TH1*)utils_files_strings::GetObjectFromPathInFile(
+            filenameData_last.data(),
+            "TrueMesonEffiPt");
+
         std::pair<TH1&, TH1&> &lBinningsAligned = 
-            *utils_TH1::AlignBinnings(lHistoTrueEffi, *lHistoTrueEffiLast);
+            *utils_TH1::AlignBinnings(lHistoTrueEffi, lHistoTrueEffiLast);
         
         TH1* lEffiOverEffiLast = utils_TH1::DivideTH1ByTH1(lBinningsAligned.first, 
-                                                            lBinningsAligned.second,
-                                                            nullptr,
-                                                            "EffiOverLastEffi");
+                                                           lBinningsAligned.second,
+                                                           nullptr,
+                                                           "TrueMesonEffi merged");
 
         DrawGammaLines(lMinPtPlot, lMaxPtPlot ,1., 1., 1, kBlack, 2);
-        lEffiOverEffiLast->Draw("same");
+
+        utils_plotting::DrawAndAdd(*lEffiOverEffiLast, "same", colorData, 3.0, leg3, "TrueMesonEffi merged", "l", lLegendTextSize, true);
     }
 
     //////////////////////////////////////////////////////////////////////////
@@ -742,7 +746,7 @@ TCanvas*
     auto &pad5 = *getNextTab();
     gPad->SetLogy();
 
-    TH1F &lHisto1D_plotWeights = *new TH1F("lHisto1D_plotWeights", "lHisto1D_plotWeights",1000, lMinPtPlot, lMaxPtPlot);
+    TH1F &lHisto1D_plotWeights = *new TH1F("lHisto1D_plotWeights", "lHisto1D_plotWeights", 1000, lMinPtPlot, lMaxPtPlot);
     SetStyleHistoTH1ForGraphs(
         &lHisto1D_plotWeights, 
         "#it{p}_{T} (GeV/#it{c})", 
@@ -770,7 +774,10 @@ TCanvas*
     //         leg4, "this MB_NW_var_expInter over its histo", "lep", lLegendTextSize, true);
     // }
 
+
     plotVector(vHistosWeightsAfterburner, leg5);
+    plotVector(vHistosRatio_weightsToPrev, leg5);
+
     DrawGammaLines(lMinPtPlot, lMaxPtPlot ,1., 1., 1, kBlack, 2);
 
     //////////////////////////////////////////////////////////////////////////

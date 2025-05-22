@@ -69,17 +69,7 @@ TCanvas*
 void setMarginsToZero(TVirtualPad& vpad);
 
 // ===============================================================
-/*
-    TString cent[nCentClasses]              = {"0-10%","0-20%","60-80%","0-5%","5-10%","10-20%","40-60%","20-40%","20-50%"};
-    TString fitFunctionsPi0[nCentClasses] = {"rad",      "rad",  "doHag", "doHag", "doHag", "rad", "oHag", "rad",   "doHag"};
-    TString fitFunctionsEta[nCentClasses] = {"modkfunc", "oHag", "oHag",  "doHag", "doHag", "rad", "oHag", "doHag", "oHag"};
-    */
 
-    /*
-    next:
-    todo:
-        Check histo MC_Pi0InAcc_Pt in file ...ConvV1WithoutCorrectionAddSig to see if I can inv yield
-        from this histo. Compare then to the one in the normal data output file.*/
 void comparePionSpectra2(){
 
     bool lUseInvWeightsCalculation = false; // this superseeds the settings in tVPars for all mesons and cents
@@ -170,7 +160,7 @@ void comparePionSpectra2(){
     // std::vector<int> lRounds{0, 2, 3, 4, 5, 6, 7};
     // std::vector<int> lRounds{ 2, 3, 4, 5, 7, 8};
     // std::vector<int> lRounds{6, 7, 8, 9, 10};
-    std::vector<int> lRounds{ 9, 10};
+    std::vector<int> lRounds{ 9, 11};
     // std::vector<int> lRounds{11};
 
     // create meaningfull id and directory to write into
@@ -186,12 +176,12 @@ void comparePionSpectra2(){
     float lRightMargin = 0.02;
 
     // run one config
-    // doMultiRound(lMapBaseDirs, "Pi0", "13530e03", lMap_mesonCent_params, lRounds,
-    //              lLeftMargin/*theLeftMargin*/, lRightMargin/*theRightMargin*/, lDir);
-    // return;
-    // doMultiRound(lMapBaseDirs, "Eta", "13530e03", lMap_mesonCent_params, lRounds,
-    // lLeftMargin/*theLeftMargin*/, lRightMargin/*theRightMargin*/, lDir);
-    // return;
+    doMultiRound(lMapBaseDirs, "Pi0", "13530e03", lMap_mesonCent_params, lRounds,
+                 lLeftMargin/*theLeftMargin*/, lRightMargin/*theRightMargin*/, lDir);
+    return;
+    doMultiRound(lMapBaseDirs, "Eta", "13530e03", lMap_mesonCent_params, lRounds,
+    lLeftMargin/*theLeftMargin*/, lRightMargin/*theRightMargin*/, lDir);
+    return;
 
     // for (auto meson : std::vector<std::string>{"Eta"}){
     for (auto meson : std::vector<std::string>{"Pi0", "Eta"}){
