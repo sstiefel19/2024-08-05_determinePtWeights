@@ -49,12 +49,12 @@ void doMultiRound(std::map<int, std::string> const &theMapBaseDirs,
     double wi = (1.-theLeftMargin)/denom;
 
     size_t lColumWidth = 200; // pixels
-    printf("line51");
+    printf("line51\n");
     // the master canvas
     std::string lNameC(Form("lCMultiRound_%s_%s", theMeson.data(), theCent.data()));
     auto &lCM = *new TCanvas(lNameC.data(), lNameC.data(), nCols*lColumWidth, 1000);
     lCM.SetMargin(0., 0., 0., 0.);
-printf("line56");
+    printf("line57\n");
     // create n parallel columns in which the canvas from fitMesonAndWriteToFile will be drawn
     double lastBoarder = 0.;
     std::vector<TPad*> lPads;
@@ -67,7 +67,7 @@ printf("line56");
         lPads.push_back(p);
         lastBoarder = boarder;
     }
-    printf("line69");
+    printf("line69\n");
     std::string lKey = theMeson + "_" + theCent;
     tVPars const &lVector = theMap.at(lKey);
     for (size_t iPos = 0; iPos < nCols; ++iPos){    
@@ -77,7 +77,7 @@ printf("line56");
         bool isPi0 = theMeson=="Pi0";        
         Double_t lXminFit = isPi0 ?  0.6 : 0.; // exclude 0.4-0.6GeV/c bin
         Double_t lXmaxFit = isPi0 ? 25 : 0.;
-printf("line79");
+        printf("line79");
 
         // theUseInvWeightsCalculation superseeds settings in theMap:
         std::string lUseWeightsOption(theUseInvWeightsCalculation
@@ -101,14 +101,21 @@ printf("line79");
                 theDir,
                 lXminFit ? &lXminFit : nullptr,
                 lXmaxFit ? &lXmaxFit : nullptr);
-printf("line96");
+        
+        printf("GOOD: line 105: lPads.size() = %zu, iPos+1 = %zu\n", lPads.size(), iPos+1);
+            
         lPads[iPos+1]->cd();
+        printf("GOOD: line 108: lPads.size() = %zu, iPos+1 = %zu\n", lPads.size(), iPos+1);
+
+        if (!cNx1_i){
+            printf("FATAL: line 107: cNx1_i = nullptr!\n");
+            continue;
+        }
         cNx1_i->DrawClonePad();
-        printf("line99");
     }
 
     lCM.SaveAs(Form("%s/%s.pdf", theDir.data(), lNameC.data()));
-    lCM.SaveAs(Form("~/repos_cloud/thesis_writing/figures/%s.pdf", lNameC.data()));
+    lCM.SaveAs(Form("~/work/repos_cloud/thesis_writing/figures/%s.pdf", lNameC.data()));
 }
 
 //====================================================================
@@ -153,16 +160,25 @@ TCanvas*
     
     Double_t lYmin_ratio_pad3{0.9};
     Double_t lYmax_ratio_pad3{1.1};
+
+    Double_t lYmin_pad5{isPi0 ? 1.e-3 : 0.1};
+    Double_t lYmax_pad5{isPi0 ? 1.e+3 : 1.9};
+
+    bool lLogY_pad5 = isPi0;
     
     std::string lPhotMesCutNo("0d200009ab770c00amd0404000_0152101500000000");
     std::string lCutNo(Form("%s_%s", thEventCutNo.data(), lPhotMesCutNo.data()));
-    bool isPremerged = (theRound==2 || theRound==3);
+    auto isPremerged = [](int theRound) { return (theRound == 2) || (theRound == 3); };
     
     if (theWeightsCalcOption.size()){
         theWeightsCalcOption.insert(0, "_");
     }
-    auto giveFilename = [&](int theRound, std::string dataMC, std::string fileSuff) {
-        std::string lMCMergeConfig(Form("MB-%s_separate", isPremerged ? "bothASpremerged" : "AS"));
+    auto giveFilename = [&theMapBaseDirs, &theMeson, &lCutNo, &theWeightsCalcOption, &isPremerged]
+        (int theRound, std::string dataMC, std::string fileSuff) {
+        std::string lMCMergeConfig(Form("MB-%s_separate", 
+                                        isPremerged(theRound)
+                                            ?    "bothASpremerged" 
+                                            :    "AS"));
         bool isInvCalcOptionAvailable = (theRound>=9);
         std::string lWeightsCalcOption_dirSuffix(isInvCalcOptionAvailable
           ?  theWeightsCalcOption.empty()
@@ -180,50 +196,101 @@ TCanvas*
 
     // new: get weights as observerd from afterburners
     std::vector<std::string> lVectorFilenamesMC;
-    for (auto const &suff : std::vector<std::string>({"MinBias", "AddSig", "AddSig2"})){
-        lVectorFilenamesMC.push_back(giveFilename(theRound, "MC", Form("Histos%s", suff.data())));
+    std::vector<std::string> lSuffixes;
+    if (theRound){
+        lSuffixes.push_back({"MinBias", "AddSig"});
+        if (theRound >= 4){
+            lSuffixes.push_back( {"AddSig2"} );
+        }
+    } 
+    else { lSuffixes.push_back({""}); }
+
+    for (auto const &suff : lSuffixes){
+        lVectorFilenamesMC.push_back(
+            giveFilename(theRound, 
+                         "MC", 
+                         Form("Histos%s", 
+                              suff.data())
+                        )
+        );
     }
 
+    std::vector<TH1*> vHistosTrueEfficiencies_singles;
     std::vector<TH1*> vHistosWeightsAfterburner;
+
     std::vector<TH1*> vHistosRatio_weightsToPrev;
+    std::vector<TH1*> vHistosRatio_trueEffiToPrev;
+    
     for (int i=0; i<lVectorFilenamesMC.size(); ++i){
+
+        auto checkPointerAndInsert = [](std::vector<TH1*> &theVector, TH1 *theH){
+            if (theH){
+                theVector.push_back(theH);
+            }
+            return static_cast<bool>(theH);
+        };
         
         auto const &fname = lVectorFilenamesMC.at(i); 
         auto const &fname_last = lVectorFilenamesMC.at(std::max(0, i-1)); 
         
-        std::string lNewName("MC");
-        lNewName += i ? "_AS" : "_MB";
-        lNewName += i  
+        std::string lNewName_weightsHisto("MC");
+        lNewName_weightsHisto += i ? "_AS" : "_MB";
+        lNewName_weightsHisto += i  
             ? (i==1)
                 ? "h" : "l"
             : "";
-        lNewName += "_WW";
+        lNewName_weightsHisto += "_WW";
+
+        std::string lNewName_trueMesonEffi(lNewName_weightsHisto.replace(0, 2, "hTrueEfficiency"));
         
-        TH1 *h = dynamic_cast<TH1*>(utils_files_strings::GetObjectFromPathInFile(
+        TH1 *hEffi_single = dynamic_cast<TH1*>(utils_files_strings::GetObjectFromPathInFile(
+            fname, 
+            "TrueMesonEffiPt",
+            lNewName_trueMesonEffi));
+        
+        TH1 *hEffi_single_last = dynamic_cast<TH1*>(utils_files_strings::GetObjectFromPathInFile(
+            fname_last, 
+            "TrueMesonEffiPt",
+            lNewName_trueMesonEffi + "_last"));
+        
+        TH1 *hWeights = dynamic_cast<TH1*>(utils_files_strings::GetObjectFromPathInFile(
             fname, 
             "MC_Meson_genPt_Weights",
-            lNewName));
+            lNewName_weightsHisto));
         
-        if (!h){
-            continue;
-        }
-        vHistosWeightsAfterburner.push_back(h);  
-        
-        TH1 *hLast = dynamic_cast<TH1*>(utils_files_strings::GetObjectFromPathInFile(
+        TH1 *hWeightsLast = dynamic_cast<TH1*>(utils_files_strings::GetObjectFromPathInFile(
             fname_last, 
             "MC_Meson_genPt_Weights",
-            lNewName+"_last"));
+            lNewName_weightsHisto + "_last"));
+        
+        
+        if (!(hEffi_single && hEffi_single_last && hWeights && hWeightsLast)){
+            printf("line 226: could not obtain at least one of \n"
+                   "\thEffi_single, hEffi_single_last, hWeights, hWeightsLast. Continuing.\n");
+            continue;
+        }
+
+        vHistosTrueEfficiencies_singles.push_back(hEffi_single);
+        vHistosWeightsAfterburner.push_back(hWeights);
+
+        // ratios to prevs 
+        vHistosRatio_trueEffiToPrev.push_back(
+            utils_TH1::DivideTH1ByTH1(*hEffi_single, 
+                                      *hEffi_single_last,
+                                      nullptr,
+                                      Form("%s_over_last", lNewName_trueMesonEffi.data())));
         
         vHistosRatio_weightsToPrev.push_back(
-            utils_TH1::DivideTH1ByTH1(*h, 
-                                      *hLast,
+            utils_TH1::DivideTH1ByTH1(*hWeights, 
+                                      *hWeightsLast,
                                       nullptr,
-                                      Form("Weights_%s_over_last", lNewName.data())));    
+                                      Form("Weights_%s_over_last", lNewName_weightsHisto.data())));    
     }
     
     // data
     std::string filenameData(giveFilename(theRound, "data", ""));
     std::string filenameData_last(giveFilename(lLastRound, "data", ""));
+    std::string filenameData_0(giveFilename(0, "data", ""));
 
     TH1D* lHistoData_inv = (TH1D*)utils_files_strings::GetObjectFromPathInFile(
         filenameData, 
@@ -252,22 +319,18 @@ TCanvas*
         // default trainconfigs
         // mb 994, pi0 997 eta 995
         std::string lConfig(lIsMB 
-            // ? isCentral  // had those for testing purposes: these configs were without exp inter
-            //     ? "5100"
-            //     : "5130" 
             ? "994" 
             : isPi0 
                 ? "997" 
                 : "996"); 
         // special cases for first iterations and starting at 8
-        printf("SFS line 173: theRound = %d\n", theRound);
-        if (!lIsMB && ((theRound < 3) || (theRound >=8))){
-            printf("SFS line 175: theRound = %d\n", theRound);
-            lConfig = (theRound==1)
-                ?  isPi0 ? "995" : "996"
-                :  (theRound >=8) 
-                    ? isPi0 ? "997" : "995"
-                    : "abort";  
+        printf("SFS line 313: theRound = %d\n", theRound);
+        if (!lIsMB){
+            if (theRound == 1){
+                lConfig = isPi0 ? "995" : "996";
+            } else if (theRound >= 8){
+                lConfig = isPi0 ? "997" : "995";
+            }
         }
 
         // adapt to possible inv weights calculation starting iteration 8
@@ -284,7 +347,7 @@ TCanvas*
             return static_cast<TH1*>(nullptr);
         }
 
-        std::string asTag(isPremerged ? "AS(l+h)" : lIsAS2 ? "ASl" : "ASh");
+        std::string asTag(isPremerged(theRound) ? "AS(l+h)" : lIsAS2 ? "ASl" : "ASh");
         std::string weightsTag(theWoWeights.size() ? "WOW" : "WW");
         std::string mcTag(Form("%s", lIsMB ? "MB" : asTag.data()));
         std::string lNewHistoName(Form("MC_%s_%s", mcTag.data(), weightsTag.data()));
@@ -414,11 +477,11 @@ TCanvas*
     lHistoData_var.Fit(&lFit_data_var, Form("I%s", theFitOption.data()), "", lMinPtFit, lMaxPtFit);
     lFit_data_var.SetRange(lMinPtPlot, lMaxPtPlot);
 
-    // transform back for plotting -  should be close to lFit_data_inv
+    // compare both in invariant form, for this transform back to inv form
     TF1 &lFit_data_var_trans_inv = utils_TF1::TransformDNDPTToInvYield(""/*triggers autom. suffix*/, lFit_data_var);
 
-    // compare both in invariant form
-    TF1 &lRatioFits_int_over_old = utils_TF1::TF1Division("lRatioFits_int_over_old", lFit_data_var_trans_inv, *lFit_data_inv, false /*theCheckRanges*/);
+    // this function shows the ratio of this iterations fit using int condition over this iterations fit wo int cond.
+    TF1 &lRatioFits_int_over_noint = utils_TF1::TF1Division("lRatioFits_int_over_no_int", lFit_data_var_trans_inv, *lFit_data_inv, false /*theCheckRanges*/);
  
     utils_TH1 &lUtils = *new utils_TH1("comparePionSpectra2");
 
@@ -524,6 +587,7 @@ TCanvas*
 
     auto plotVector = [&](std::vector<TH1*> const &theVector, TLegend *theLeg){
         printf("plotVector(): theVector.size() = %zu\n", theVector.size());
+        bool first = true;
         for (TH1* ih : theVector){
             if (!ih) { 
                 printf("plotVector(): WARNING: theVector contains nullptrs. Ignoring. \n");
@@ -534,21 +598,19 @@ TCanvas*
             MPair lPair = getColorAndMarkerForHisto(h);           
             bool ww = lPair.second==markerStyleMCWW;
             bool isRatio = TString(ih->GetName()).Contains("_over_");  // Form("Weights_%s_over_last", lNewName.data())));    
-
+            lPair.second = isRatio 
+                ?    21 // filled squares
+                :    20, // filled circle
             utils_plotting::DrawAndAdd(
-                h, 
-                "same", 
-                lPair.first, 
-                1.0, 
-                theLeg, 
+                h, "same", lPair.first, 1.0, 
+                (!isRatio || first) 
+                    ?   theLeg
+                    :   static_cast<TLegend*>(nullptr), 
                 isRatio 
-                    ? "Ratio"   
+                    ? "This over last (other MCs too)"   
                     : h.GetTitle(), 
-                "lep", 
-                lLegendTextSize, 
-                true, 
-                lPair.second, 
-                1.0);
+                "lep", lLegendTextSize, true, lPair.second, 1.0);
+            first = false;
         }
     };
 
@@ -649,11 +711,18 @@ TCanvas*
                     i, obj->GetName());
                 continue;
             }
+            bool useIntCondition = true;
             TH1* histoMC = dynamic_cast<TH1*>(obj);
             if (!histoMC) {continue;}
-            TH1 &hRatioToFit = *utils_TH1::DivideTH1ByTF1(*histoMC, *lastItFit, nullptr, nullptr, kTRUE /*theIntegrateTF1*/);
+            TH1 &hRatioToFit = *utils_TH1::DivideTH1ByTF1(*histoMC, *lastItFit, nullptr, nullptr, useIntCondition /*theIntegrateTF1*/);
             hRatioToFit.SetName(Form("%s_mover_%s", histoMC->GetName(), lastItFit->GetName()));
-            utils_plotting::DrawAndAdd(hRatioToFit, "same", histoMC->GetLineColor(), 1.0, leg2, entry->GetLabel(), "lp", lLegendTextSize);
+            utils_plotting::DrawAndAdd(
+                hRatioToFit, "same", histoMC->GetLineColor(), 1.0, 
+                leg2, 
+                Form("%s_int_%d", 
+                     entry->GetLabel(), 
+                     useIntCondition), 
+                "lp", lLegendTextSize);
         }
     }    
     DrawGammaLines(lMinPtPlot, lMaxPtPlot ,1., 1., 1, kBlack, 2);
@@ -665,33 +734,65 @@ TCanvas*
 
     TH1 &hPlot1D_pad3 = *(TH1*)histo1DRatio.Clone("clonepad3");
     hPlot1D_pad3.GetYaxis()->SetRangeUser(lYmin_ratio_pad3, lYmax_ratio_pad3);
-    hPlot1D_pad3.GetYaxis()->SetTitle("this over last");
+    hPlot1D_pad3.GetYaxis()->SetTitle("this over various");
     hPlot1D_pad3.DrawCopy();
+
+    auto *leg3 = utils_plotting::GetLegend(xnew(0.16),0.6,xnew(0.44),0.86);
+    DrawGammaLines(lMinPtPlot, lMaxPtPlot ,1., 1., 1, kBlack, 2);
+
+    // plot single efficiencies
+    // plotVector(vHistosRatio_trueEffiToPrev, leg3);
+        printf("line 732\n");
+    // 0th iteration no PtW
+    TH1 &lHistoTrueEffi_0 = *(TH1*)utils_files_strings::GetObjectFromPathInFile(
+        filenameData_0.data(),
+        "TrueMesonEffiPt",
+        nullptr,
+        "TrueMesonEffi_0_noPtW");
+    
+    printf("line 740\n");
+
+    // the current it. it0: no ptW, else: wPtW 
+    TH1 &lHistoTrueEffi = *(TH1*)utils_files_strings::GetObjectFromPathInFile(
+        filenameData.data(),
+        "TrueMesonEffiPt", 
+        nullptr,
+        Form("TrueMesonEffi_%d_%s", theRound, theRound ? "wPtW" : "noPtW"));
+    
+    std::pair<TH1&, TH1&> &lEffis_binningAligned_this_over_last = 
+        *utils_TH1::AlignBinnings(lHistoTrueEffi, lHistoTrueEffi_0);
+    
+    // draw ratio of effi/effiLast (the full merged TrueEfficiciency)
+    TH1* lEffiOverEffi0 = utils_TH1::DivideTH1ByTH1(
+        lEffis_binningAligned_this_over_last.first, 
+        lEffis_binningAligned_this_over_last.second,
+        nullptr,
+        Form("%s_over_%s", 
+             lHistoTrueEffi.GetName(), 
+             lHistoTrueEffi_0.GetName())
+    );
+
+    utils_plotting::DrawAndAdd(*lEffiOverEffi0, "same", kGray, 3.0, leg3);
     
     if (theRound) {
-        
-        auto *leg3 = utils_plotting::GetLegend(xnew(0.16),0.6,xnew(0.44),0.86);
-    
-        // draw ratio of effi/effiLast (the full merged TrueEfficiciency)
-        TH1 &lHistoTrueEffi = *(TH1*)utils_files_strings::GetObjectFromPathInFile(
-            filenameData.data(), 
-            "TrueMesonEffiPt");
 
         TH1 &lHistoTrueEffiLast = *(TH1*)utils_files_strings::GetObjectFromPathInFile(
             filenameData_last.data(),
-            "TrueMesonEffiPt");
+            "TrueMesonEffiPt", 
+            nullptr,
+            Form("TrueMesonEffi_%d", theRound-1));
 
         std::pair<TH1&, TH1&> &lBinningsAligned = 
             *utils_TH1::AlignBinnings(lHistoTrueEffi, lHistoTrueEffiLast);
         
+        // draw ratio of effi/effiLast (the full merged TrueEfficiciency)
         TH1* lEffiOverEffiLast = utils_TH1::DivideTH1ByTH1(lBinningsAligned.first, 
                                                            lBinningsAligned.second,
                                                            nullptr,
-                                                           "TrueMesonEffi merged");
+                                                           Form("TrueMesonEffi %d over %d",
+                                                                theRound, theRound-1));
 
-        DrawGammaLines(lMinPtPlot, lMaxPtPlot ,1., 1., 1, kBlack, 2);
-
-        utils_plotting::DrawAndAdd(*lEffiOverEffiLast, "same", colorData, 3.0, leg3, "TrueMesonEffi merged", "l", lLegendTextSize, true);
+        utils_plotting::DrawAndAdd(*lEffiOverEffiLast, "same", colorData, 3.0, leg3);
     }
 
     //////////////////////////////////////////////////////////////////////////
@@ -703,26 +804,27 @@ TCanvas*
     histo1DRatio.GetYaxis()->SetRangeUser(lYmin_ratio,lYmax_ratio);
     histo1DRatio.DrawCopy();
 
-    // this fit over this data
+    // this fit over this data, evaluated at bin centers, NO int
     TH1* hRatioDataToFit = utils_TH1::DivideTH1ByTF1(
-        *lHistoData_inv, *lFit_data_inv, Form("hRatioDataToFit_it%d", theRound), nullptr, false/*integrateFunction*/);
-    
+        *lHistoData_inv, *lFit_data_inv, Form("hRatioDataToFit_int_0_it%d", theRound), nullptr, false/*integrateFunction*/);
+
+    // this fit over this data, evaluated at bin centers, WITH int
     TH1* hRatioDataToFit_int = utils_TH1::DivideTH1ByTF1(
-        lHistoData_var, lFit_data_var, Form("hRatioDataToFit_int%d", theRound), nullptr, true/*integrateFunction*/);
-    
-    
+        lHistoData_var, lFit_data_var, Form("hRatioDataToFit_int_1_%d", theRound), nullptr, true/*integrateFunction*/);
+
+    // plot
     auto *leg4 = utils_plotting::GetLegend(xnew(0.16),0.6,xnew(0.44),0.86);
+
+    // the ratio this iteration  int over no int
+    utils_plotting::DrawAndAdd(lRatioFits_int_over_noint, "same", kPink, 3.0, leg4, "Data fit w/ int over data fit wo/ int (old)", "l", lLegendTextSize, true);
+
     DrawGammaLines(lMinPtPlot, lMaxPtPlot ,1., 1., 1, kBlack, 2);
 
-    utils_plotting::DrawAndAdd(*hRatioDataToFit, "same", colorFit, 3.0, leg4, "this data over its fit", "l", lLegendTextSize, true);
+    utils_plotting::DrawAndAdd(*hRatioDataToFit, "same", kGray, 3.0, leg4, "data_inv over fit at bin center", "l", lLegendTextSize, true);
     
     // the int version
-    utils_plotting::DrawAndAdd(*hRatioDataToFit_int, "same", colorFit+2, 3.0, leg4, "data_var_int", "l", lLegendTextSize, true);
-    
-    // the ratio int over old
-    utils_plotting::DrawAndAdd(lRatioFits_int_over_old, "same", colorData, 3.0, leg4, "int_over_old", "l", lLegendTextSize, true);
-
-    
+    utils_plotting::DrawAndAdd(*hRatioDataToFit_int, "same", colorFit+2, 3.0, leg4, "data_var over fit integrated", "l", lLegendTextSize, true);
+     
     // QA PLOTS 2:
     // show quality of exp inter for MC MB nw var yield
     // this mc_mb_nw_varYields's exponential interpolation over the histo itself
@@ -737,16 +839,16 @@ TCanvas*
     
     if (hQualityExpInter_mc_mb_nw_var){
         utils_plotting::DrawAndAdd(*hQualityExpInter_mc_mb_nw_var, "same", colorFit+7, 1.0, 
-            leg4, "this MB_NW_var_expInter over its histo", "lep", lLegendTextSize, true);
+            leg4, "Accuracy of expInter for MC MB nw", "lep", lLegendTextSize, true);
     }
 
         // observed weights in afterburner
     //////////////////////////////////////////////////////////////////////////
     cout << "==================== PAD 5 ===================================\n";
     auto &pad5 = *getNextTab();
-    gPad->SetLogy();
+    gPad->SetLogy(lLogY_pad5);
 
-    TH1F &lHisto1D_plotWeights = *new TH1F("lHisto1D_plotWeights", "lHisto1D_plotWeights", 1000, lMinPtPlot, lMaxPtPlot);
+    TH1F &lHisto1D_plotWeights = *new TH1F("lHisto1D_plotWeights", "lHisto1D_plotWeights", 10, lMinPtPlot, lMaxPtPlot);
     SetStyleHistoTH1ForGraphs(
         &lHisto1D_plotWeights, 
         "#it{p}_{T} (GeV/#it{c})", 
@@ -762,18 +864,12 @@ TCanvas*
     lHisto1D_plotWeights.GetXaxis()->SetRangeUser(lMinPtPlot, lMaxPtPlot);
     lHisto1D_plotWeights.GetYaxis()->SetLabelOffset(0.01);
     lHisto1D_plotWeights.GetYaxis()->CenterTitle(true);
-    lHisto1D_plotWeights.GetYaxis()->SetRangeUser(1e-4, 1e4);        
+    lHisto1D_plotWeights.GetYaxis()->SetRangeUser(lYmin_pad5, lYmax_pad5);        
     lHisto1D_plotWeights.DrawCopy();
 
     auto leg5 = new TLegend(xnew(0.144),0.73,xnew(0.44),0.92);
     leg5->SetBorderSize(0);
     leg5->Draw();
-
-    // for (TH1 *hWeights : vHistosWeightsAfterburner){
-    //     utils_plotting::DrawAndAdd(*hWeights, "same", colorFit+7, 1.0, 
-    //         leg4, "this MB_NW_var_expInter over its histo", "lep", lLegendTextSize, true);
-    // }
-
 
     plotVector(vHistosWeightsAfterburner, leg5);
     plotVector(vHistosRatio_weightsToPrev, leg5);
@@ -913,12 +1009,13 @@ TCanvas*
         lWeightsfile->Write();
         lWeightsfile->Close();
         lWeightsfile->Delete();    
-        printf("line 799: // end saveAllToWeightsFile\n");
+        printf("line 999: // end saveAllToWeightsFile\n");
     }; 
 
     saveAllToWeightsFile(false /*theSaveDNDPT*/);
     saveAllToWeightsFile(true /*theSaveDNDPT*/);
     printf("&cOneIt = %p ClassName = %s \n", (void*)&cOneIt, cOneIt.ClassName());
+        printf("line 1009:\n");
 
     return &cOneIt;
 }
